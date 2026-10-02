@@ -2,8 +2,8 @@
 
 ## Herramientas requeridas
 
-1. Visual Studio 2026 con ASP.NET y desarrollo web.
-2. .NET 10 SDK.
+1. Visual Studio 2022 versión 17.8 o superior con ASP.NET y desarrollo web.
+2. .NET 8 SDK.
 3. SQL Server 2022 o SQL Server Express LocalDB.
 4. SQL Server Management Studio.
 5. Git.

@@ -8,7 +8,7 @@ El repositorio contiene la estructura inicial del proyecto, configuración para 
 
 ## Tecnologías
 
-- .NET 10 LTS
+- .NET 8 LTS
 - ASP.NET Core MVC
 - ASP.NET Core Identity
 - Entity Framework Core
@@ -18,8 +18,8 @@ El repositorio contiene la estructura inicial del proyecto, configuración para 
 
 ## Requisitos
 
-- Visual Studio 2026 con la carga de trabajo ASP.NET y desarrollo web
-- .NET 10 SDK
+- Visual Studio 2022 versión 17.8 o superior con la carga de trabajo ASP.NET y desarrollo web
+- .NET 8 SDK
 - SQL Server 2022 o SQL Server Express LocalDB
 - Git
 
