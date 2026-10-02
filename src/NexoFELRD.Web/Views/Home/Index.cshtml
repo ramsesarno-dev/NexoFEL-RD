@@ -1,0 +1,27 @@
+@{
+    ViewData["Title"] = "Panel principal";
+}
+
+<div class="page-heading">
+    <div>
+        <p class="eyebrow">INICIO DEL PROYECTO</p>
+        <h1>Panel principal</h1>
+        <p class="text-muted">Acceso inicial a los módulos de facturación e inventario.</p>
+    </div>
+    <a class="btn btn-primary" asp-controller="Facturas" asp-action="Crear">Nueva factura</a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4"><div class="metric-card"><span>Ventas de hoy</span><strong>RD$ 0.00</strong><small>Sin operaciones registradas</small></div></div>
+    <div class="col-md-4"><div class="metric-card"><span>Facturas</span><strong>0</strong><small>Primera etapa del desarrollo</small></div></div>
+    <div class="col-md-4"><div class="metric-card"><span>Alertas de inventario</span><strong>0</strong><small>Inventario pendiente de carga</small></div></div>
+</div>
+
+<h2 class="h5 mb-3">Módulos disponibles</h2>
+<div class="row g-3">
+    <div class="col-md-4"><a class="module-card" asp-controller="Clientes" asp-action="Index"><strong>Clientes</strong><span>Datos del comprador</span></a></div>
+    <div class="col-md-4"><a class="module-card" asp-controller="Productos" asp-action="Index"><strong>Productos</strong><span>Precios impuestos y existencias</span></a></div>
+    <div class="col-md-4"><a class="module-card" asp-controller="Facturas" asp-action="Index"><strong>Facturas</strong><span>Emisión y consulta</span></a></div>
+    <div class="col-md-4"><a class="module-card" asp-controller="Inventario" asp-action="Index"><strong>Inventario</strong><span>Movimientos y alertas</span></a></div>
+    <div class="col-md-4"><a class="module-card" asp-controller="Reportes" asp-action="Index"><strong>Reportes</strong><span>Ventas y resultados</span></a></div>
+</div>

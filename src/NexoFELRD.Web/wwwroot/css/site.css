@@ -1,0 +1,35 @@
+:root {
+    --navy: #16324f;
+    --blue: #1f5a85;
+    --pale: #eaf2f8;
+    --border: #d9e2ea;
+    --text: #17212b;
+}
+
+html { font-size: 15px; }
+body { color: var(--text); background: #f6f8fa; font-family: Inter, "Segoe UI", Arial, sans-serif; }
+.app-header { background: #fff; }
+.navbar-brand { color: var(--navy) !important; letter-spacing: -.02em; }
+.nav-link { color: #495867 !important; }
+.nav-link:hover { color: var(--blue) !important; }
+.btn-primary { background: var(--blue); border-color: var(--blue); }
+.page-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; }
+.page-heading h1 { color: #000; margin: 0 0 .25rem; font-size: 1.9rem; font-weight: 700; }
+.eyebrow { color: var(--blue); font-size: .75rem; font-weight: 800; letter-spacing: .12em; margin: 0 0 .35rem; }
+.metric-card, .module-card, .content-card, .empty-state { background: #fff; border: 1px solid var(--border); border-radius: .75rem; box-shadow: 0 6px 20px rgba(22, 50, 79, .05); }
+.metric-card { padding: 1.25rem; min-height: 125px; }
+.metric-card span, .metric-card small { display: block; color: #667585; }
+.metric-card strong { display: block; font-size: 1.65rem; color: var(--navy); margin: .45rem 0; }
+.module-card { display: flex; min-height: 108px; padding: 1.25rem; flex-direction: column; text-decoration: none; color: var(--text); transition: transform .15s, border-color .15s; }
+.module-card:hover { transform: translateY(-2px); border-color: var(--blue); color: var(--text); }
+.module-card strong { color: var(--navy); font-size: 1.05rem; margin-bottom: .35rem; }
+.module-card span { color: #667585; }
+.content-card { padding: 1.5rem; }
+.empty-state { padding: 4rem 2rem; text-align: center; }
+.empty-state h2 { color: var(--navy); font-size: 1.25rem; }
+.empty-state p { color: #667585; margin-bottom: 0; }
+footer { background: #fff; }
+
+@media (max-width: 767px) {
+    .page-heading { align-items: flex-start; flex-direction: column; }
+}

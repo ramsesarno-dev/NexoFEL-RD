@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NexoFEL RD</title>
+  <style>
+    :root{--navy:#16324f;--blue:#1f5a85;--border:#d9e2ea;--muted:#667585}
+    *{box-sizing:border-box}body{margin:0;background:#f6f8fa;color:#17212b;font-family:Segoe UI,Arial,sans-serif}
+    header{height:68px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 52px;gap:42px}
+    .brand{font-size:22px;font-weight:750;color:var(--navy)}nav{display:flex;gap:27px;color:#495867;font-size:15px}.login{margin-left:auto;background:var(--blue);color:#fff;border-radius:6px;padding:9px 15px;font-weight:600}
+    main{padding:42px 56px;max-width:1360px;margin:auto}.top{display:flex;justify-content:space-between;align-items:end;margin-bottom:28px}.eyebrow{color:var(--blue);font-size:12px;font-weight:800;letter-spacing:.12em;margin:0 0 8px}h1{margin:0 0 7px;font-size:35px;color:#000}.muted{color:var(--muted);margin:0}.primary{background:var(--blue);color:#fff;border-radius:7px;padding:12px 18px;font-weight:650}
+    .metrics,.modules{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.card{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 7px 24px rgba(22,50,79,.05)}.metric{padding:22px}.metric span,.metric small{display:block;color:var(--muted)}.metric strong{display:block;color:var(--navy);font-size:27px;margin:9px 0}.section{font-size:19px;margin:34px 0 16px;color:#000}.module{padding:24px;min-height:118px}.module strong{display:block;color:var(--navy);font-size:18px;margin-bottom:8px}.module span{color:var(--muted)}
+  </style>
+</head>
+<body>
+  <header><div class="brand">NexoFEL RD</div><nav><span>Inicio</span><span>Clientes</span><span>Productos</span><span>Facturas</span><span>Inventario</span><span>Reportes</span></nav><div class="login">Iniciar sesión</div></header>
+  <main>
+    <div class="top"><div><p class="eyebrow">INICIO DEL PROYECTO</p><h1>Panel principal</h1><p class="muted">Acceso inicial a los módulos de facturación e inventario.</p></div><div class="primary">Nueva factura</div></div>
+    <section class="metrics">
+      <div class="card metric"><span>Ventas de hoy</span><strong>RD$ 0.00</strong><small>Sin operaciones registradas</small></div>
+      <div class="card metric"><span>Facturas</span><strong>0</strong><small>Primera etapa del desarrollo</small></div>
+      <div class="card metric"><span>Alertas de inventario</span><strong>0</strong><small>Inventario pendiente de carga</small></div>
+    </section>
+    <h2 class="section">Módulos disponibles</h2>
+    <section class="modules">
+      <div class="card module"><strong>Clientes</strong><span>Datos del comprador</span></div>
+      <div class="card module"><strong>Productos</strong><span>Precios, impuestos y existencias</span></div>
+      <div class="card module"><strong>Facturas</strong><span>Emisión y consulta</span></div>
+      <div class="card module"><strong>Inventario</strong><span>Movimientos y alertas</span></div>
+      <div class="card module"><strong>Reportes</strong><span>Ventas y resultados</span></div>
+    </section>
+  </main>
+</body>
+</html>

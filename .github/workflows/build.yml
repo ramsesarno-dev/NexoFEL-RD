@@ -1,0 +1,22 @@
+name: Build
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Obtener código
+        uses: actions/checkout@v4
+      - name: Configurar .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Restaurar
+        run: dotnet restore NexoFELRD.sln
+      - name: Compilar
+        run: dotnet build NexoFELRD.sln --configuration Release --no-restore

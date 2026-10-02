@@ -1,0 +1,33 @@
+## .NET and Visual Studio
+bin/
+obj/
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Build and test results
+[Dd]ebug/
+[Rr]elease/
+[Tt]est[Rr]esult*/
+coverage/
+
+## Local settings and secrets
+appsettings.Local.json
+secrets.json
+*.pfx
+*.snk
+.env
+
+## Database and generated files
+*.db
+*.db-shm
+*.db-wal
+GeneratedInvoices/
+logs/
+
+## Operating systems
+.DS_Store
+Thumbs.db
