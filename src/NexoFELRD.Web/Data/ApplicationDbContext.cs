@@ -52,6 +52,7 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
             entity.Property(x => x.Nombre).HasMaxLength(150).IsRequired();
             entity.Property(x => x.Precio).HasPrecision(18, 2);
             entity.Property(x => x.TasaItbis).HasPrecision(5, 2);
+            entity.Property(x => x.IndicadorFacturacion).HasDefaultValue((byte)1);
             entity.HasIndex(x => x.Codigo).IsUnique();
         });
 

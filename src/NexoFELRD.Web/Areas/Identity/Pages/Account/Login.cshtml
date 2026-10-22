@@ -1,0 +1,270 @@
+@page
+@model LoginModel
+
+@{
+    ViewData["Title"] = "Iniciar sesión";
+    Layout = "/Views/Shared/_AuthLayout.cshtml";
+}
+
+<section class="auth-shell">
+
+    <aside class="auth-intro">
+
+        <a class="auth-brand"
+           asp-area=""
+           asp-controller="Home"
+           asp-action="Index">
+
+            <span class="auth-brand-mark">NF</span>
+
+            <span>
+                <strong>NexoFEL</strong>
+                <small>República Dominicana</small>
+            </span>
+        </a>
+
+        <div class="auth-presentation">
+
+            <span class="auth-kicker">
+                FACTURACIÓN ELECTRÓNICA
+            </span>
+
+            <h1>
+                Gestiona tus operaciones con seguridad y precisión.
+            </h1>
+
+            <p>
+                Administra clientes, productos, inventario y comprobantes
+                electrónicos desde una plataforma centralizada.
+            </p>
+
+            <div class="auth-features">
+
+                <div class="auth-feature">
+                    <span>01</span>
+                    <p>Clientes y productos</p>
+                </div>
+
+                <div class="auth-feature">
+                    <span>02</span>
+                    <p>Control de inventario</p>
+                </div>
+
+                <div class="auth-feature">
+                    <span>03</span>
+                    <p>Facturación electrónica</p>
+                </div>
+
+            </div>
+
+        </div>
+
+        <p class="auth-project-note">
+            Proyecto académico desarrollado con ASP.NET Core y SQL Server.
+        </p>
+
+    </aside>
+
+    <div class="auth-form-panel">
+
+        <div class="auth-form-card">
+
+            <div class="auth-form-header">
+
+                <span class="auth-form-badge">
+                    PORTAL ADMINISTRATIVO
+                </span>
+
+                <h2>Bienvenido de nuevo</h2>
+
+                <p>
+                    Ingresa tus credenciales para acceder al sistema.
+                </p>
+
+            </div>
+
+            <form id="loginForm" method="post" class="auth-form">
+
+                <input type="hidden" asp-for="ReturnUrl" />
+
+                <div asp-validation-summary="ModelOnly"
+                     class="auth-alert"
+                     role="alert">
+                </div>
+
+                <div class="auth-field">
+
+                    <label for="loginEmail">
+                        Correo electrónico
+                    </label>
+
+                    <input asp-for="Input.Email"
+                           id="loginEmail"
+                           class="auth-input"
+                           type="email"
+                           autocomplete="username"
+                           placeholder="usuario@correo.com"
+                           required
+                           autofocus />
+
+                    <span asp-validation-for="Input.Email"
+                          class="auth-error">
+                    </span>
+
+                </div>
+
+                <div class="auth-field">
+
+                    <label for="loginPassword">
+                        Contraseña
+                    </label>
+
+                    <div class="auth-password-container">
+
+                        <input asp-for="Input.Password"
+                               id="loginPassword"
+                               class="auth-input"
+                               type="password"
+                               autocomplete="current-password"
+                               placeholder="Escribe tu contraseña"
+                               required />
+
+                        <button id="togglePassword"
+                                class="auth-password-toggle"
+                                type="button"
+                                aria-label="Mostrar contraseña">
+                            Mostrar
+                        </button>
+
+                    </div>
+
+                    <span asp-validation-for="Input.Password"
+                          class="auth-error">
+                    </span>
+
+                </div>
+
+                <label class="auth-remember">
+
+                    <input asp-for="Input.RememberMe"
+                           type="checkbox" />
+
+                    <span>Mantener mi sesión iniciada</span>
+
+                </label>
+
+                <button id="loginButton"
+                        type="submit"
+                        class="auth-submit">
+
+                    <span id="loginButtonText">
+                        Ingresar al sistema
+                    </span>
+
+                    <span class="auth-submit-arrow"
+                          aria-hidden="true">
+                        →
+                    </span>
+
+                </button>
+
+            </form>
+
+            <div class="auth-security-note">
+
+                <span class="auth-security-dot"></span>
+
+                <span>
+                    Acceso protegido para usuarios autorizados.
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+<div id="loginLoader"
+     class="auth-loader"
+     aria-hidden="true">
+
+    <div class="auth-loader-card"
+         role="status"
+         aria-live="polite">
+
+        <div class="auth-loader-logo">NF</div>
+
+        <span class="auth-loader-spinner"></span>
+
+        <strong>Verificando credenciales</strong>
+
+        <p>
+            Estamos preparando tu sesión. Espera un momento.
+        </p>
+
+    </div>
+
+</div>
+
+@section Scripts {
+    <script>
+        (() => {
+            const form = document.getElementById("loginForm");
+            const loginButton = document.getElementById("loginButton");
+            const loginButtonText = document.getElementById("loginButtonText");
+            const loader = document.getElementById("loginLoader");
+
+            const passwordInput =
+                document.getElementById("loginPassword");
+
+            const togglePassword =
+                document.getElementById("togglePassword");
+
+            togglePassword.addEventListener("click", function () {
+                const mostrar =
+                    passwordInput.type === "password";
+
+                passwordInput.type =
+                    mostrar ? "text" : "password";
+
+                this.textContent =
+                    mostrar ? "Ocultar" : "Mostrar";
+
+                this.setAttribute(
+                    "aria-label",
+                    mostrar
+                        ? "Ocultar contraseña"
+                        : "Mostrar contraseña"
+                );
+            });
+
+            form.addEventListener("submit", function () {
+                if (!form.checkValidity()) {
+                    return;
+                }
+
+                loginButton.disabled = true;
+                loginButtonText.textContent =
+                    "Iniciando sesión...";
+
+                loader.classList.add("is-visible");
+                loader.setAttribute("aria-hidden", "false");
+
+                document.body.classList.add("auth-loading");
+            });
+
+            window.addEventListener("pageshow", function () {
+                loginButton.disabled = false;
+                loginButtonText.textContent =
+                    "Ingresar al sistema";
+
+                loader.classList.remove("is-visible");
+                loader.setAttribute("aria-hidden", "true");
+
+                document.body.classList.remove("auth-loading");
+            });
+        })();
+    </script>
+}

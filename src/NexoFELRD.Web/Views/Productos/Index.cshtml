@@ -1,8 +1,159 @@
+@model IEnumerable<NexoFELRD.Web.Models.Producto>
+
 @{
     ViewData["Title"] = "Productos";
 }
+
 <div class="page-heading">
-    <div><p class="eyebrow">CATÁLOGO</p><h1>Productos</h1><p class="text-muted">Precios, impuestos y existencias.</p></div>
-    <button class="btn btn-primary" disabled>Nuevo producto</button>
+    <div>
+        <p class="eyebrow">CATÁLOGO</p>
+        <h1>Productos</h1>
+        <p class="text-muted">
+            Precios, impuestos y existencias.
+        </p>
+    </div>
+
+    <a class="btn btn-primary" asp-action="Crear">
+        Nuevo producto
+    </a>
 </div>
-<div class="empty-state"><h2>El módulo está creado</h2><p>El catálogo y sus validaciones se implementarán en la segunda etapa.</p></div>
+
+@if (TempData["Exito"] is string mensaje)
+{
+    <div class="alert alert-success alert-dismissible fade show"
+         role="alert">
+
+        @mensaje
+
+        <button type="button"
+                class="btn-close"
+                data-bs-dismiss="alert">
+        </button>
+    </div>
+}
+
+<div class="content-card">
+
+    <form method="get" class="row g-2 mb-4">
+
+        <div class="col-md-6">
+            <input class="form-control"
+                   name="buscar"
+                   value="@ViewData["Buscar"]"
+                   placeholder="Buscar por código o nombre" />
+        </div>
+
+        <div class="col-auto">
+            <button class="btn btn-outline-primary"
+                    type="submit">
+                Buscar
+            </button>
+
+            <a class="btn btn-outline-secondary"
+               asp-action="Index">
+                Limpiar
+            </a>
+        </div>
+
+    </form>
+
+    @if (!Model.Any())
+    {
+        <div class="text-center py-5">
+            <h2 class="h5">No hay productos registrados</h2>
+
+            <p class="text-muted mb-0">
+                Registra el primer producto para comenzar.
+            </p>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+
+            <table class="table table-hover align-middle mb-0">
+
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Precio</th>
+                        <th>ITBIS</th>
+                        <th>Existencia</th>
+                        <th>Estado</th>
+                        <th class="text-end">Acciones</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    @foreach (var producto in Model)
+                    {
+                        <tr>
+                            <td class="fw-semibold">
+                                @producto.Codigo
+                            </td>
+
+                            <td>
+                                @producto.Nombre
+                            </td>
+
+                            <td>
+                                RD$ @producto.Precio.ToString("N2")
+                            </td>
+
+                            <td>
+                                @producto.TasaItbis.ToString("N2")%
+                            </td>
+
+                            <td>
+                                <span class="@(producto.Existencia <= 5
+                                                                          ? "text-danger fw-semibold"
+                                                                          : string.Empty)">
+
+                            @producto.Existencia
+                        </span>
+                    </td>
+
+                            <td>
+                                <span class="badge @(producto.Activo
+                                                                  ? "text-bg-success"
+                                                                  : "text-bg-secondary")">
+
+                            @(producto.Activo
+                                                        ? "Activo"
+                                                        : "Inactivo")
+                                                                 </span>
+                                                             </td>
+
+                    <td class="text-end">
+
+                        <a class="btn btn-sm btn-outline-primary"
+                           asp-action="Editar"
+                           asp-route-id="@producto.Id">
+                            Editar
+                        </a>
+
+                        <form asp-action="CambiarEstado"
+                              asp-route-id="@producto.Id"
+                              method="post"
+                              class="d-inline">
+
+                            <button class="btn btn-sm btn-outline-secondary"
+                                    type="submit">
+
+                                @(producto.Activo
+                                                                ? "Desactivar"
+                                                                : "Activar")
+                            </button>
+
+                                </form>
+                            </td>
+                        </tr>
+                                }
+
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

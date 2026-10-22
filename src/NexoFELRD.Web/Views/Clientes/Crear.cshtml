@@ -1,0 +1,117 @@
+@model NexoFELRD.Web.Models.Cliente
+
+@{
+    ViewData["Title"] = "Nuevo cliente";
+}
+
+<div class="page-heading">
+    <div>
+        <p class="eyebrow">CLIENTES</p>
+        <h1>Nuevo cliente</h1>
+        <p class="text-muted">
+            Completa los datos principales del comprador.
+        </p>
+    </div>
+</div>
+
+<div class="content-card">
+    <form asp-action="Crear" method="post">
+
+        <div asp-validation-summary="ModelOnly"
+             class="text-danger mb-3">
+        </div>
+
+        <div class="row g-3">
+
+            <div class="col-md-8">
+                <label asp-for="Nombre" class="form-label"></label>
+                <input asp-for="Nombre" class="form-control" />
+                <span asp-validation-for="Nombre"
+                      class="text-danger"></span>
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="IdentificacionFiscal"
+                       class="form-label">
+                    RNC o cédula
+                </label>
+                <input asp-for="IdentificacionFiscal"
+                       class="form-control" />
+                <span asp-validation-for="IdentificacionFiscal"
+                      class="text-danger"></span>
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="Telefono" class="form-label"></label>
+                <input asp-for="Telefono"
+                       class="form-control"
+                       inputmode="numeric"
+                       maxlength="12"
+                       placeholder="809-555-1234" />
+                       <span asp-validation-for="Telefono"
+                      class="text-danger"></span>
+            </div>
+
+            <div class="col-md-8">
+                <label asp-for="Correo" class="form-label"></label>
+                <input asp-for="Correo"
+                       type="email"
+                       class="form-control" />
+                <span asp-validation-for="Correo"
+                      class="text-danger"></span>
+            </div>
+
+            <div class="col-12">
+                <label asp-for="Direccion" class="form-label">
+                    Dirección
+                </label>
+                <textarea asp-for="Direccion"
+                          class="form-control"
+                          rows="3"></textarea>
+                <span asp-validation-for="Direccion"
+                      class="text-danger"></span>
+            </div>
+
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="btn btn-primary">
+                Guardar cliente
+            </button>
+
+            <a asp-action="Index"
+               class="btn btn-outline-secondary">
+                Cancelar
+            </a>
+        </div>
+
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        const telefono = document.getElementById("Telefono");
+
+        function formatearTelefono(valor) {
+            const digitos = valor
+                .replace(/\D/g, "")
+                .substring(0, 10);
+
+            if (digitos.length <= 3) {
+                return digitos;
+            }
+
+            if (digitos.length <= 6) {
+                return `${digitos.substring(0, 3)}-${digitos.substring(3)}`;
+            }
+
+            return `${digitos.substring(0, 3)}-${digitos.substring(3, 6)}-${digitos.substring(6)}`;
+        }
+
+        telefono.addEventListener("input", function () {
+            this.value = formatearTelefono(this.value);
+        });
+
+        telefono.value = formatearTelefono(telefono.value);
+    </script>
+}
