@@ -1,0 +1,122 @@
+@model NexoFELRD.Web.Models.Producto
+
+@{
+    ViewData["Title"] = "Nuevo producto";
+}
+
+<div class="page-heading">
+    <div>
+        <p class="eyebrow">PRODUCTOS</p>
+        <h1>Nuevo producto</h1>
+
+        <p class="text-muted">
+            Registra el precio, impuesto y existencia inicial.
+        </p>
+    </div>
+</div>
+
+<div class="content-card">
+
+    <form asp-action="Crear" method="post">
+
+        <div asp-validation-summary="ModelOnly"
+             class="text-danger mb-3">
+        </div>
+
+        <div class="row g-3">
+
+            <div class="col-md-4">
+                <label asp-for="Codigo" class="form-label">
+                    Código
+                </label>
+
+                <input asp-for="Codigo"
+                       class="form-control"
+                       placeholder="Ejemplo: PROD001" />
+
+                <span asp-validation-for="Codigo"
+                      class="text-danger">
+                </span>
+            </div>
+
+            <div class="col-md-8">
+                <label asp-for="Nombre" class="form-label"></label>
+
+                <input asp-for="Nombre"
+                       class="form-control"
+                       placeholder="Nombre del producto" />
+
+                <span asp-validation-for="Nombre"
+                      class="text-danger">
+                </span>
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="Precio" class="form-label"></label>
+
+                <input asp-for="Precio"
+                       class="form-control"
+                       type="number"
+                       min="0"
+                       step="0.01" />
+
+                <span asp-validation-for="Precio"
+                      class="text-danger">
+                </span>
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="IndicadorFacturacion"
+                       class="form-label">
+                    Indicador de facturación DGII
+                </label>
+
+                <select asp-for="IndicadorFacturacion"
+                        class="form-select">
+
+                    <option value="1">ITBIS 18%</option>
+                    <option value="2">ITBIS 16%</option>
+                    <option value="3">ITBIS 0%</option>
+                    <option value="4">Exento</option>
+                    <option value="0">No facturable</option>
+
+                </select>
+
+                <span asp-validation-for="IndicadorFacturacion"
+                      class="text-danger">
+                </span>
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="Existencia"
+                       class="form-label">
+                </label>
+
+                <input asp-for="Existencia"
+                       class="form-control"
+                       type="number"
+                       min="0" />
+
+                <span asp-validation-for="Existencia"
+                      class="text-danger">
+                </span>
+            </div>
+
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+
+            <button class="btn btn-primary"
+                    type="submit">
+                Guardar producto
+            </button>
+
+            <a class="btn btn-outline-secondary"
+               asp-action="Index">
+                Cancelar
+            </a>
+
+        </div>
+
+    </form>
+</div>

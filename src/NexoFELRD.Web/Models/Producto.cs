@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace NexoFELRD.Web.Models;
 
@@ -17,6 +18,21 @@ public class Producto
 
     [Range(0, 100)]
     public decimal TasaItbis { get; set; } = 18;
+
+    [Range(0, 4)]
+    public byte IndicadorFacturacion { get; set; } = 1;
+
+    [NotMapped]
+    public string ClasificacionItbis =>
+        IndicadorFacturacion switch
+        {
+            0 => "No facturable",
+            1 => "ITBIS 18%",
+            2 => "ITBIS 16%",
+            3 => "ITBIS 0%",
+            4 => "Exento",
+            _ => "Sin clasificación"
+        };
 
     [Range(0, int.MaxValue)]
     public int Existencia { get; set; }
