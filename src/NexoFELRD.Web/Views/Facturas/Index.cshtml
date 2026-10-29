@@ -1,8 +1,150 @@
+@model IEnumerable<NexoFELRD.Web.Models.Factura>
+@using NexoFELRD.Web.Models
+
 @{
     ViewData["Title"] = "Facturas";
 }
+
 <div class="page-heading">
-    <div><p class="eyebrow">OPERACIONES</p><h1>Facturas</h1><p class="text-muted">Emisión y consulta de ventas.</p></div>
-    <a class="btn btn-primary" asp-action="Crear">Nueva factura</a>
+    <div>
+        <p class="eyebrow">OPERACIONES</p>
+        <h1>Facturas</h1>
+        <p class="text-muted">
+            Emisión y consulta de ventas.
+        </p>
+    </div>
+
+    <a class="btn btn-primary"
+       asp-action="Crear">
+        Nueva factura
+    </a>
 </div>
-<div class="empty-state"><h2>No hay facturas registradas</h2><p>La lógica de emisión se implementará en la tercera etapa.</p></div>
+
+@if (TempData["Exito"] is string mensaje)
+{
+    <div class="alert alert-success alert-dismissible fade show"
+         role="alert">
+        @mensaje
+
+        <button type="button"
+                class="btn-close"
+                data-bs-dismiss="alert">
+        </button>
+    </div>
+}
+
+<div class="content-card">
+
+    <form method="get"
+          class="row g-2 mb-4">
+
+        <div class="col-md-7">
+            <input class="form-control"
+                   name="buscar"
+                   value="@ViewData["Buscar"]"
+                   placeholder="Buscar por número, cliente, RNC o cédula" />
+        </div>
+
+        <div class="col-auto">
+            <button class="btn btn-outline-primary"
+                    type="submit">
+                Buscar
+            </button>
+
+            <a class="btn btn-outline-secondary"
+               asp-action="Index">
+                Limpiar
+            </a>
+        </div>
+
+    </form>
+
+    @if (!Model.Any())
+    {
+        <div class="text-center py-5">
+            <h2 class="h5">
+                No hay facturas registradas
+            </h2>
+
+            <p class="text-muted mb-0">
+                Registra la primera factura para comenzar.
+            </p>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+
+                <thead>
+                    <tr>
+                        <th>Número</th>
+                        <th>Fecha</th>
+                        <th>Cliente</th>
+                        <th>Comprobante</th>
+                        <th>Subtotal</th>
+                        <th>ITBIS</th>
+                        <th>Total</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach (var factura in Model)
+                    {
+                        <tr>
+                            <td class="fw-semibold">
+                                @factura.NumeroInterno
+                            </td>
+
+                            <td>
+                                @factura.FechaEmision.ToString("dd/MM/yyyy")
+                            </td>
+
+                            <td>
+                                <div class="fw-semibold">
+                                    @factura.Cliente.Nombre
+                                </div>
+
+                                <small class="text-muted">
+                                    @(factura.Cliente.IdentificacionFiscal ?? "Sin identificación")
+                                </small>
+                            </td>
+
+                            <td>
+                                @if (factura.TipoComprobante ==
+                                                        TipoComprobante.CreditoFiscal)
+                                {
+                                    <span>E31 - Crédito fiscal</span>
+                                }
+                                else
+                                {
+                                    <span>E32 - Consumo</span>
+                                }
+                            </td>
+
+                            <td>
+                                RD$ @factura.Subtotal.ToString("N2")
+                            </td>
+
+                            <td>
+                                RD$ @factura.Itbis.ToString("N2")
+                            </td>
+
+                            <td class="fw-bold">
+                                RD$ @factura.Total.ToString("N2")
+                            </td>
+
+                            <td>
+                                <span class="badge text-bg-success">
+                                    @factura.Estado
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+
+            </table>
+        </div>
+    }
+</div>

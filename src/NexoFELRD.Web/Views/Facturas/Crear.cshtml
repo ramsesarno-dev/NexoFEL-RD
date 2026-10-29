@@ -1,15 +1,398 @@
+@model NexoFELRD.Web.Models.ViewModels.FacturaCrearViewModel
+
 @{
     ViewData["Title"] = "Nueva factura";
 }
+
 <div class="page-heading">
-    <div><p class="eyebrow">FACTURACIÓN</p><h1>Nueva factura</h1><p class="text-muted">Estructura inicial del formulario de venta.</p></div>
-</div>
-<div class="content-card">
-    <div class="row g-3">
-        <div class="col-md-6"><label class="form-label">Cliente</label><select class="form-select" disabled><option>Seleccione un cliente</option></select></div>
-        <div class="col-md-3"><label class="form-label">Tipo</label><select class="form-select" disabled><option>Consumo 32</option><option>Crédito fiscal 31</option></select></div>
-        <div class="col-md-3"><label class="form-label">Fecha</label><input class="form-control" value="Pendiente" disabled /></div>
+    <div>
+        <p class="eyebrow">FACTURACIÓN</p>
+        <h1>Nueva factura</h1>
+        <p class="text-muted">
+            Selecciona el cliente y agrega los productos de la venta.
+        </p>
     </div>
-    <hr class="my-4" />
-    <p class="text-muted mb-0">El detalle, los cálculos y la confirmación se completarán en la tercera etapa.</p>
 </div>
+
+<div class="content-card">
+    <form asp-action="Crear" method="post" id="formFactura">
+        <div asp-validation-summary="ModelOnly"
+             class="text-danger mb-3">
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label asp-for="ClienteId" class="form-label">
+                    Cliente
+                </label>
+
+                <select asp-for="ClienteId"
+                        asp-items="Model.Clientes"
+                        class="form-select">
+                    <option value="">Seleccione un cliente</option>
+                </select>
+
+                <span asp-validation-for="ClienteId"
+                      class="text-danger">
+                </span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="TipoComprobante" class="form-label">
+                    Tipo de comprobante
+                </label>
+
+                <select asp-for="TipoComprobante"
+                        class="form-select">
+                    <option value="32">
+                        Factura de consumo electrónica (32)
+                    </option>
+                    <option value="31">
+                        Factura de crédito fiscal electrónica (31)
+                    </option>
+                </select>
+
+                <span asp-validation-for="TipoComprobante"
+                      class="text-danger">
+                </span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="FechaEmision" class="form-label">
+                    Fecha de emisión
+                </label>
+
+                <input asp-for="FechaEmision"
+                       class="form-control"
+                       type="date" />
+
+                <span asp-validation-for="FechaEmision"
+                      class="text-danger">
+                </span>
+            </div>
+        </div>
+
+        <hr class="my-4" />
+
+        <h2 class="h5 mb-3">Detalle de productos</h2>
+
+        <div class="row g-3 align-items-end">
+            <div class="col-md-6">
+                <label class="form-label">Producto</label>
+
+                <select id="productoSeleccionado"
+                        class="form-select">
+                    <option value="">Seleccione un producto</option>
+
+                    @foreach (var producto in Model.Productos)
+                    {
+                        <option value="@producto.Id"
+                                data-codigo="@producto.Codigo"
+                                data-nombre="@producto.Nombre"
+                                data-precio="@producto.Precio.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)"
+                                data-itbis="@producto.TasaItbis.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)"
+                                data-indicador="@producto.IndicadorFacturacion"
+                                data-existencia="@producto.Existencia">
+                            @producto.Codigo - @producto.Nombre
+                            (Disponible: @producto.Existencia)
+                        </option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <label for="cantidadProducto" class="form-label">
+                    Cantidad
+                </label>
+
+                <input id="cantidadProducto"
+                       class="form-control"
+                       type="number"
+                       min="1"
+                       value="1" />
+            </div>
+
+            <div class="col-md-4">
+                <button id="agregarProducto"
+                        class="btn btn-outline-primary"
+                        type="button">
+                    Agregar producto
+                </button>
+            </div>
+        </div>
+
+        <div id="mensajeDetalles"
+             class="text-danger mt-2 d-none">
+            Agregue al menos un producto a la factura.
+        </div>
+
+        <div class="table-responsive mt-4">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th class="text-end">Precio</th>
+                        <th class="text-center">Cantidad</th>
+                        <th class="text-end">Subtotal</th>
+                        <th class="text-end">ITBIS</th>
+                        <th class="text-end">Total</th>
+                        <th class="text-end">Acción</th>
+                    </tr>
+                </thead>
+
+                <tbody id="detalleFactura"></tbody>
+            </table>
+        </div>
+
+        <div id="sinDetalles"
+             class="text-center text-muted py-4">
+            Todavía no se han agregado productos.
+        </div>
+
+        <div class="row justify-content-end mt-4">
+            <div class="col-md-4">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Subtotal:</span>
+                    <strong id="subtotalGeneral">RD$ 0.00</strong>
+                </div>
+
+                <div class="d-flex justify-content-between mb-2">
+                    <span>ITBIS:</span>
+                    <strong id="itbisGeneral">RD$ 0.00</strong>
+                </div>
+
+                <hr />
+
+                <div class="d-flex justify-content-between">
+                    <span class="h5">Total:</span>
+                    <strong id="totalGeneral"
+                            class="h5 text-primary">
+                        RD$ 0.00
+                    </strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+            <button class="btn btn-primary" type="submit">
+                Confirmar factura
+            </button>
+
+            <a class="btn btn-outline-secondary"
+               asp-action="Index">
+                Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        const productoSeleccionado =
+            document.getElementById("productoSeleccionado");
+
+        const cantidadProducto =
+            document.getElementById("cantidadProducto");
+
+        const agregarProducto =
+            document.getElementById("agregarProducto");
+
+        const detalleFactura =
+            document.getElementById("detalleFactura");
+
+        const sinDetalles =
+            document.getElementById("sinDetalles");
+
+        const mensajeDetalles =
+            document.getElementById("mensajeDetalles");
+
+        const formFactura =
+            document.getElementById("formFactura");
+
+        const formatoMoneda = new Intl.NumberFormat("es-DO", {
+            style: "currency",
+            currency: "DOP"
+        });
+
+        productoSeleccionado.addEventListener("change", function () {
+            const opcion = this.options[this.selectedIndex];
+
+            if (opcion.value) {
+                cantidadProducto.max = opcion.dataset.existencia;
+            } else {
+                cantidadProducto.removeAttribute("max");
+            }
+
+            cantidadProducto.value = 1;
+        });
+
+        agregarProducto.addEventListener("click", function () {
+            const opcion =
+                productoSeleccionado.options[
+                    productoSeleccionado.selectedIndex
+                ];
+
+            if (!opcion.value) {
+                alert("Seleccione un producto.");
+                return;
+            }
+
+            const productoId = Number(opcion.value);
+            const cantidad = Number(cantidadProducto.value);
+            const existencia = Number(opcion.dataset.existencia);
+
+            if (cantidad <= 0) {
+                alert("La cantidad debe ser mayor que cero.");
+                return;
+            }
+
+            if (cantidad > existencia) {
+                alert(
+                    `Solo hay ${existencia} unidades disponibles.`
+                );
+                return;
+            }
+
+            const productoRepetido =
+                detalleFactura.querySelector(
+                    `tr[data-producto-id="${productoId}"]`
+                );
+
+            if (productoRepetido) {
+                alert("Este producto ya fue agregado.");
+                return;
+            }
+
+            const precio = Number(opcion.dataset.precio);
+            const tasaItbis = Number(opcion.dataset.itbis);
+            const subtotal = precio * cantidad;
+            const itbis = subtotal * (tasaItbis / 100);
+            const total = subtotal + itbis;
+
+            const fila = document.createElement("tr");
+
+            fila.dataset.productoId = productoId;
+            fila.dataset.subtotal = subtotal;
+            fila.dataset.itbis = itbis;
+            fila.dataset.total = total;
+
+            fila.innerHTML = `
+                <td>
+                    <strong>${opcion.dataset.codigo}</strong><br />
+                    <span class="text-muted">
+                        ${opcion.dataset.nombre}
+                    </span>
+
+                    <input type="hidden"
+                           data-campo="ProductoId"
+                           value="${productoId}" />
+
+                    <input type="hidden"
+                           data-campo="Cantidad"
+                           value="${cantidad}" />
+                </td>
+
+                <td class="text-end">
+                    ${formatoMoneda.format(precio)}
+                </td>
+
+                <td class="text-center">
+                    ${cantidad}
+                </td>
+
+                <td class="text-end">
+                    ${formatoMoneda.format(subtotal)}
+                </td>
+
+                <td class="text-end">
+                    ${formatoMoneda.format(itbis)}
+                </td>
+
+                <td class="text-end fw-semibold">
+                    ${formatoMoneda.format(total)}
+                </td>
+
+                <td class="text-end">
+                    <button type="button"
+                            class="btn btn-sm btn-outline-danger eliminar-detalle">
+                        Quitar
+                    </button>
+                </td>
+            `;
+
+            detalleFactura.appendChild(fila);
+
+            reindexarDetalles();
+            actualizarTotales();
+
+            sinDetalles.classList.add("d-none");
+            mensajeDetalles.classList.add("d-none");
+
+            productoSeleccionado.value = "";
+            cantidadProducto.value = 1;
+        });
+
+        detalleFactura.addEventListener("click", function (event) {
+            const boton =
+                event.target.closest(".eliminar-detalle");
+
+            if (!boton) {
+                return;
+            }
+
+            boton.closest("tr").remove();
+
+            reindexarDetalles();
+            actualizarTotales();
+
+            if (detalleFactura.children.length === 0) {
+                sinDetalles.classList.remove("d-none");
+            }
+        });
+
+        formFactura.addEventListener("submit", function (event) {
+            if (detalleFactura.children.length === 0) {
+                event.preventDefault();
+                mensajeDetalles.classList.remove("d-none");
+            }
+        });
+
+        function reindexarDetalles() {
+            const filas = detalleFactura.querySelectorAll("tr");
+
+            filas.forEach(function (fila, indice) {
+                fila.querySelector(
+                    '[data-campo="ProductoId"]'
+                ).name = `Detalles[${indice}].ProductoId`;
+
+                fila.querySelector(
+                    '[data-campo="Cantidad"]'
+                ).name = `Detalles[${indice}].Cantidad`;
+            });
+        }
+
+        function actualizarTotales() {
+            let subtotal = 0;
+            let itbis = 0;
+            let total = 0;
+
+            detalleFactura.querySelectorAll("tr")
+                .forEach(function (fila) {
+                    subtotal += Number(fila.dataset.subtotal);
+                    itbis += Number(fila.dataset.itbis);
+                    total += Number(fila.dataset.total);
+                });
+
+            document.getElementById("subtotalGeneral")
+                .textContent = formatoMoneda.format(subtotal);
+
+            document.getElementById("itbisGeneral")
+                .textContent = formatoMoneda.format(itbis);
+
+            document.getElementById("totalGeneral")
+                .textContent = formatoMoneda.format(total);
+        }
+    </script>
+}
