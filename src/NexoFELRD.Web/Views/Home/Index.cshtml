@@ -2,6 +2,9 @@
 
 @{
     ViewData["Title"] = "Panel principal";
+
+    bool esAdministrador =
+        User.IsInRole("Administrador");
 }
 
 <div class="page-heading">
@@ -11,44 +14,58 @@
         <h1>Panel principal</h1>
 
         <p class="text-muted">
-            Resumen actualizado de clientes, productos
-            y facturación.
+            Resumen actualizado de clientes, productos,
+            inventario y facturación.
         </p>
     </div>
 
-    <div class="d-flex gap-2">
+    <div class="d-flex flex-wrap gap-2">
         <a class="btn btn-outline-primary"
            asp-controller="Clientes"
            asp-action="Crear">
             Nuevo cliente
         </a>
 
-        <a class="btn btn-primary"
+        <a class="btn btn-outline-primary"
            asp-controller="Productos"
            asp-action="Crear">
             Nuevo producto
         </a>
+
+        <a class="btn btn-primary"
+           asp-controller="Facturas"
+           asp-action="Crear">
+            Nueva factura
+        </a>
+
+        @if (esAdministrador)
+        {
+            <a class="btn btn-outline-secondary"
+               asp-controller="Inventario"
+               asp-action="Registrar">
+                Registrar movimiento
+            </a>
+        }
     </div>
 </div>
 
 <div class="row g-3 mb-4">
-
-    <div class="col-md-4">
-        <div class="metric-card">
+    <div class="col-md-6 col-xl">
+        <div class="metric-card h-100">
             <span>Ventas de hoy</span>
 
             <strong>
-                RD$ @Model.VentasHoy.ToString("N2")
+                @($"RD$ {Model.VentasHoy:N2}")
             </strong>
 
             <small>
-                Total registrado durante el día
+                Total facturado durante el día
             </small>
         </div>
     </div>
 
-    <div class="col-md-4">
-        <div class="metric-card">
+    <div class="col-md-6 col-xl">
+        <div class="metric-card h-100">
             <span>Facturas</span>
 
             <strong>
@@ -61,22 +78,24 @@
         </div>
     </div>
 
-    <div class="col-md-4">
-        <div class="metric-card">
+    <div class="col-md-6 col-xl">
+        <div class="metric-card h-100">
             <span>Alertas de inventario</span>
 
-            <strong>
+            <strong class="@(Model.ProductosBajoInventario > 0
+                                    ? "text-danger"
+                                    : "")">
                 @Model.ProductosBajoInventario
             </strong>
 
             <small>
-                Productos con cinco unidades o menos
+                Bienes activos con cinco unidades o menos
             </small>
         </div>
     </div>
 
-    <div class="col-md-4">
-        <div class="metric-card">
+    <div class="col-md-6 col-xl">
+        <div class="metric-card h-100">
             <span>Clientes activos</span>
 
             <strong>
@@ -89,8 +108,8 @@
         </div>
     </div>
 
-    <div class="col-md-4">
-        <div class="metric-card">
+    <div class="col-md-6 col-xl">
+        <div class="metric-card h-100">
             <span>Productos activos</span>
 
             <strong>
@@ -98,67 +117,87 @@
             </strong>
 
             <small>
-                Productos disponibles
+                Bienes y servicios disponibles
             </small>
         </div>
     </div>
-
 </div>
 
-<h2 class="h5 mb-3">
-    Módulos disponibles
-</h2>
+<div class="d-flex justify-content-between
+            align-items-center mb-3">
+    <h2 class="h5 mb-0">
+        Módulos disponibles
+    </h2>
+</div>
 
 <div class="row g-3">
-
-    <div class="col-md-4">
-        <a class="module-card"
+    <div class="col-md-6 col-xl-4">
+        <a class="module-card h-100"
            asp-controller="Clientes"
            asp-action="Index">
 
             <strong>Clientes</strong>
-            <span>Datos del comprador</span>
+
+            <span>
+                Registro, consulta y actualización de
+                compradores.
+            </span>
         </a>
     </div>
 
-    <div class="col-md-4">
-        <a class="module-card"
+    <div class="col-md-6 col-xl-4">
+        <a class="module-card h-100"
            asp-controller="Productos"
            asp-action="Index">
 
             <strong>Productos</strong>
-            <span>Precios, impuestos y existencias</span>
+
+            <span>
+                Bienes, servicios, precios, impuestos y
+                unidades de medida.
+            </span>
         </a>
     </div>
 
-    <div class="col-md-4">
-        <a class="module-card"
+    <div class="col-md-6 col-xl-4">
+        <a class="module-card h-100"
            asp-controller="Facturas"
            asp-action="Index">
 
             <strong>Facturas</strong>
-            <span>Emisión y consulta</span>
+
+            <span>
+                Emisión y consulta de comprobantes.
+            </span>
         </a>
     </div>
 
-    <div class="col-md-4">
-        <a class="module-card"
-           asp-controller="Inventario"
-           asp-action="Index">
+    @if (esAdministrador)
+    {
+        <div class="col-md-6 col-xl-4">
+            <a class="module-card h-100"
+               asp-controller="Inventario"
+               asp-action="Index">
 
-            <strong>Inventario</strong>
-            <span>Movimientos y alertas</span>
-        </a>
-    </div>
+                <strong>Inventario</strong>
 
-    <div class="col-md-4">
-        <a class="module-card"
+                <span>
+                    Existencias, movimientos y alertas.
+                </span>
+            </a>
+        </div>
+    }
+
+    <div class="col-md-6 col-xl-4">
+        <a class="module-card h-100"
            asp-controller="Reportes"
            asp-action="Index">
 
             <strong>Reportes</strong>
-            <span>Ventas y resultados</span>
+
+            <span>
+                Resumen de ventas, impuestos y resultados.
+            </span>
         </a>
     </div>
-
 </div>

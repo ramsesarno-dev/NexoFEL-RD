@@ -1,0 +1,910 @@
+@model NexoFELRD.Web.Models.Factura
+@using NexoFELRD.Web.Models
+
+@{
+    var tituloDetalle = Model.TipoComprobante switch
+    {
+        TipoComprobante.NotaCredito =>
+            "Detalle de nota de crédito",
+
+        TipoComprobante.NotaDebito =>
+            "Detalle de nota de débito",
+
+        _ => "Detalle de factura"
+    };
+
+    ViewData["Title"] = tituloDetalle;
+
+    var nombreComprobante = Model.TipoComprobante switch
+    {
+        TipoComprobante.CreditoFiscal =>
+            "E31 - Factura de crédito fiscal",
+
+        TipoComprobante.Consumo =>
+            "E32 - Factura de consumo",
+
+        TipoComprobante.NotaDebito =>
+            "E33 - Nota de débito",
+
+        TipoComprobante.NotaCredito =>
+            "E34 - Nota de crédito",
+
+        TipoComprobante.Compras =>
+            "E41 - Comprobante de compras",
+
+        TipoComprobante.GastosMenores =>
+            "E43 - Gastos menores",
+
+        TipoComprobante.RegimenesEspeciales =>
+            "E44 - Regímenes especiales",
+
+        TipoComprobante.Gubernamental =>
+            "E45 - Gubernamental",
+
+        TipoComprobante.Exportaciones =>
+            "E46 - Exportaciones",
+
+        TipoComprobante.PagosExterior =>
+            "E47 - Pagos al exterior",
+
+        _ => "Comprobante desconocido"
+    };
+
+    var condicionPago = Model.TipoPago switch
+    {
+        TipoPagoDgii.Contado => "Contado",
+        TipoPagoDgii.Credito => "Crédito",
+        TipoPagoDgii.Gratuito => "Gratuito",
+        _ => "No especificada"
+    };
+
+    var tipoIngreso = Model.TipoIngreso switch
+    {
+        TipoIngresoDgii.OperacionesNoFinancieras =>
+            "Operaciones no financieras",
+
+        TipoIngresoDgii.IngresosFinancieros =>
+            "Ingresos financieros",
+
+        TipoIngresoDgii.IngresosExtraordinarios =>
+            "Ingresos extraordinarios",
+
+        TipoIngresoDgii.Arrendamientos =>
+            "Arrendamientos",
+
+        TipoIngresoDgii.VentaActivoDepreciable =>
+            "Venta de activo depreciable",
+
+        TipoIngresoDgii.OtrosIngresos =>
+            "Otros ingresos",
+
+        _ => "No especificado"
+    };
+
+    var estadoTexto = Model.Estado switch
+    {
+        EstadoFactura.Borrador => "Borrador",
+        EstadoFactura.Confirmada => "Confirmada",
+        EstadoFactura.Generada => "Generada",
+        EstadoFactura.Anulada => "Anulada",
+        _ => "Desconocido"
+    };
+
+    var estadoClase = Model.Estado switch
+    {
+        EstadoFactura.Confirmada => "bg-success",
+        EstadoFactura.Generada => "bg-primary",
+        EstadoFactura.Anulada => "bg-danger",
+        _ => "bg-secondary"
+    };
+
+    var codigoModificacionTexto =
+        Model.CodigoModificacion switch
+        {
+            CodigoModificacionDgii.AnulacionTotal =>
+                "1 - Anulación total",
+
+            CodigoModificacionDgii.CorreccionTexto =>
+                "2 - Corrección de texto",
+
+            CodigoModificacionDgii.CorreccionMontos =>
+                "3 - Corrección de montos",
+
+            CodigoModificacionDgii.ReemplazoContingencia =>
+                "4 - Reemplazo de contingencia",
+
+            CodigoModificacionDgii.ReferenciaFacturaConsumo =>
+                "5 - Referencia a factura de consumo",
+
+            _ => "No aplica"
+        };
+
+    var razonSocial =
+        Model.RazonSocialComprador ??
+        Model.Cliente?.Nombre ??
+        "Consumidor final";
+
+    var identificacion =
+        Model.RncComprador ??
+        Model.Cliente?.IdentificacionFiscal;
+
+    var correo =
+        Model.CorreoComprador ??
+        Model.Cliente?.Correo;
+
+    var direccion =
+        Model.DireccionComprador ??
+        Model.Cliente?.Direccion;
+
+    var montoPeriodo =
+        Model.Total + Model.MontoNoFacturable;
+
+    var documentosRelacionados = Model.DocumentosRelacionados
+        .OrderByDescending(x => x.FechaEmision)
+        .ThenByDescending(x => x.Id)
+        .ToList();
+}
+
+<style>
+    @@media print {
+        .no-print {
+            display: none !important;
+        }
+
+        .content-card {
+            box-shadow: none !important;
+            border: none !important;
+        }
+    }
+</style>
+
+<div class="page-heading">
+
+    <div>
+        <p class="eyebrow">
+            FACTURACIÓN ELECTRÓNICA
+        </p>
+
+        <h1>
+            @tituloDetalle
+        </h1>
+
+        <p class="text-muted">
+            Consulta fiscal y comercial de la operación registrada.
+        </p>
+    </div>
+
+    <div class="d-flex gap-2 flex-wrap no-print">
+
+        @if ((Model.Estado == EstadoFactura.Confirmada ||
+              Model.Estado == EstadoFactura.Generada) &&
+             (Model.TipoComprobante ==
+                  TipoComprobante.CreditoFiscal ||
+              Model.TipoComprobante ==
+                  TipoComprobante.Consumo) &&
+             !string.IsNullOrWhiteSpace(Model.ENCF))
+        {
+            <a class="btn btn-outline-warning"
+               asp-action="CrearNotaDebito"
+               asp-route-id="@Model.Id">
+                Crear nota de débito
+            </a>
+
+            <a class="btn btn-outline-danger"
+               asp-action="CrearNotaCredito"
+               asp-route-id="@Model.Id">
+                Crear nota de crédito
+            </a>
+        }
+
+        <button type="button"
+                class="btn btn-outline-primary"
+                onclick="window.print()">
+            Imprimir
+        </button>
+
+        <a class="btn btn-outline-secondary"
+           asp-action="Index">
+            Volver a facturas
+        </a>
+
+    </div>
+
+</div>
+
+<div class="content-card mb-4">
+
+    <div class="row g-4">
+
+        <div class="col-md-4">
+            <span class="text-muted d-block">
+                Número interno
+            </span>
+
+            <strong class="fs-5">
+                @Model.NumeroInterno
+            </strong>
+        </div>
+
+        <div class="col-md-4">
+            <span class="text-muted d-block">
+                e-NCF
+            </span>
+
+            @if (string.IsNullOrWhiteSpace(Model.ENCF))
+            {
+                <span class="text-muted">
+                    Pendiente de asignación
+                </span>
+            }
+            else
+            {
+                <strong>
+                    @Model.ENCF
+                </strong>
+            }
+        </div>
+
+        <div class="col-md-2">
+            <span class="text-muted d-block">
+                Fecha de emisión
+            </span>
+
+            <strong>
+                @Model.FechaEmision.ToString("dd/MM/yyyy")
+            </strong>
+        </div>
+
+        <div class="col-md-2">
+            <span class="text-muted d-block">
+                Estado
+            </span>
+
+            <span class="badge @estadoClase">
+                @estadoTexto
+            </span>
+        </div>
+
+        <div class="col-md-6">
+            <span class="text-muted d-block">
+                Tipo de comprobante
+            </span>
+
+            <strong>
+                @nombreComprobante
+            </strong>
+        </div>
+
+        <div class="col-md-3">
+            <span class="text-muted d-block">
+                Condición de pago
+            </span>
+
+            <strong>
+                @condicionPago
+            </strong>
+        </div>
+
+        <div class="col-md-3">
+            <span class="text-muted d-block">
+                Tratamiento del precio
+            </span>
+
+            <strong>
+                @(Model.IndicadorMontoGravado == 1
+                    ? "ITBIS incluido"
+                    : "ITBIS no incluido")
+            </strong>
+        </div>
+
+        <div class="col-md-6">
+            <span class="text-muted d-block">
+                Tipo de ingreso
+            </span>
+
+            <strong>
+                @tipoIngreso
+            </strong>
+        </div>
+
+        @if (Model.TipoPago == TipoPagoDgii.Credito)
+        {
+            <div class="col-md-3">
+                <span class="text-muted d-block">
+                    Fecha límite de pago
+                </span>
+
+                <strong>
+                    @(Model.FechaLimitePago.HasValue
+                        ? Model.FechaLimitePago.Value
+                            .ToString("dd/MM/yyyy")
+                        : "No especificada")
+                </strong>
+            </div>
+        }
+
+    </div>
+
+</div>
+
+@if (Model.TipoComprobante == TipoComprobante.NotaCredito ||
+     Model.TipoComprobante == TipoComprobante.NotaDebito)
+{
+    <div class="content-card mb-4">
+
+        <div class="d-flex justify-content-between
+                    align-items-start flex-wrap gap-3 mb-3">
+
+            <div>
+                <p class="eyebrow mb-1">
+                    INFORMACIÓN DE REFERENCIA
+                </p>
+
+                <h2 class="h5 mb-0">
+                    Comprobante modificado
+                </h2>
+            </div>
+
+            @if (Model.FacturaAfectadaId.HasValue)
+            {
+                <a class="btn btn-outline-primary no-print"
+                   asp-action="Detalle"
+                   asp-route-id="@Model.FacturaAfectadaId.Value">
+                    Ver comprobante original
+                </a>
+            }
+
+        </div>
+
+        <div class="row g-3">
+
+            <div class="col-md-3">
+                <span class="text-muted d-block">
+                    Número interno
+                </span>
+
+                <strong>
+                    @(Model.FacturaAfectada?.NumeroInterno
+                        ?? "No disponible")
+                </strong>
+            </div>
+
+            <div class="col-md-3">
+                <span class="text-muted d-block">
+                    e-NCF modificado
+                </span>
+
+                <strong>
+                    @(Model.NCFModificado
+                        ?? Model.FacturaAfectada?.ENCF
+                        ?? "No disponible")
+                </strong>
+            </div>
+
+            <div class="col-md-3">
+                <span class="text-muted d-block">
+                    Fecha del comprobante
+                </span>
+
+                <strong>
+                    @(Model.FechaNCFModificado.HasValue
+                        ? Model.FechaNCFModificado.Value
+                            .ToString("dd/MM/yyyy")
+                        : "No disponible")
+                </strong>
+            </div>
+
+            <div class="col-md-3">
+                <span class="text-muted d-block">
+                    Código de modificación
+                </span>
+
+                <strong>
+                    @codigoModificacionTexto
+                </strong>
+            </div>
+
+            <div class="col-md-8">
+                <span class="text-muted d-block">
+                    Razón de la modificación
+                </span>
+
+                <strong>
+                    @(string.IsNullOrWhiteSpace(
+                        Model.RazonModificacion)
+                        ? "No especificada"
+                        : Model.RazonModificacion)
+                </strong>
+            </div>
+
+            @if (Model.TipoComprobante ==
+                 TipoComprobante.NotaCredito)
+            {
+                <div class="col-md-4">
+
+                    <span class="text-muted d-block">
+                        Tratamiento del ITBIS
+                    </span>
+
+                    @if (Model.IndicadorNotaCreditoMayor30Dias == 1)
+                    {
+                        <span class="badge bg-warning text-dark">
+                            Más de 30 días — ITBIS no acreditable
+                        </span>
+                    }
+                    else if (
+                        Model.IndicadorNotaCreditoMayor30Dias == 0)
+                    {
+                        <span class="badge bg-success">
+                            30 días o menos
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">
+                            No especificado
+                        </span>
+                    }
+
+                </div>
+            }
+
+        </div>
+
+    </div>
+}
+
+@if (documentosRelacionados.Any())
+{
+    <div class="content-card mb-4">
+
+        <div class="d-flex justify-content-between
+                    align-items-center flex-wrap gap-2 mb-4">
+
+            <div>
+                <p class="eyebrow mb-1">
+                    TRAZABILIDAD FISCAL
+                </p>
+
+                <h2 class="h5 mb-0">
+                    Documentos relacionados
+                </h2>
+            </div>
+
+            <span class="badge bg-secondary">
+                @(documentosRelacionados.Count == 1
+                    ? "1 documento"
+                    : $"{documentosRelacionados.Count} documentos")
+            </span>
+
+        </div>
+
+        <div class="table-responsive">
+
+            <table class="table table-hover align-middle mb-0">
+
+                <thead>
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Documento</th>
+                        <th>Fecha</th>
+                        <th>Razón</th>
+                        <th class="text-end">
+                            Efecto
+                        </th>
+                        <th>Estado</th>
+                        <th class="text-end no-print">
+                            Acción
+                        </th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    @foreach (var documento in documentosRelacionados)
+                    {
+                        var esNotaDebito =
+                            documento.TipoComprobante ==
+                            TipoComprobante.NotaDebito;
+
+                        var esNotaCredito =
+                            documento.TipoComprobante ==
+                            TipoComprobante.NotaCredito;
+
+                        var tipoRelacionado =
+                            documento.TipoComprobante switch
+                            {
+                                TipoComprobante.NotaDebito =>
+                                    "E33 - Nota de débito",
+
+                                TipoComprobante.NotaCredito =>
+                                    "E34 - Nota de crédito",
+
+                                _ =>
+                                    $"E{(int)documento.TipoComprobante}"
+                            };
+
+                        var claseTipoRelacionado =
+                            esNotaDebito
+                                ? "bg-warning text-dark"
+                                : esNotaCredito
+                                    ? "bg-danger"
+                                    : "bg-secondary";
+
+                        var estadoRelacionado =
+                            documento.Estado switch
+                            {
+                                EstadoFactura.Borrador =>
+                                    "Borrador",
+
+                                EstadoFactura.Confirmada =>
+                                    "Confirmada",
+
+                                EstadoFactura.Generada =>
+                                    "Generada",
+
+                                EstadoFactura.Anulada =>
+                                    "Anulada",
+
+                                _ =>
+                                    "Desconocido"
+                            };
+
+                        var claseEstadoRelacionado =
+                            documento.Estado switch
+                            {
+                                EstadoFactura.Confirmada =>
+                                    "bg-success",
+
+                                EstadoFactura.Generada =>
+                                    "bg-primary",
+
+                                EstadoFactura.Anulada =>
+                                    "bg-danger",
+
+                                _ =>
+                                    "bg-secondary"
+                            };
+
+                        var montoRelacionado =
+                            documento.Total +
+                            documento.MontoNoFacturable;
+
+                        var signoRelacionado =
+                            esNotaDebito
+                                ? "+"
+                                : esNotaCredito
+                                    ? "-"
+                                    : string.Empty;
+
+                        var claseMontoRelacionado =
+                            esNotaDebito
+                                ? "text-danger"
+                                : esNotaCredito
+                                    ? "text-success"
+                                    : string.Empty;
+
+                        <tr>
+
+                            <td>
+                                <span class="badge
+                                             @claseTipoRelacionado">
+                                    @tipoRelacionado
+                                </span>
+                            </td>
+
+                            <td>
+                                <div class="fw-semibold">
+                                    @documento.NumeroInterno
+                                </div>
+
+                                <small class="text-muted">
+                                    @(string.IsNullOrWhiteSpace(
+                                        documento.ENCF)
+                                        ? "e-NCF pendiente"
+                                        : documento.ENCF)
+                                </small>
+                            </td>
+
+                            <td>
+                               @(documento.FechaEmision.ToString("dd/MM/yyyy"))
+                            </td>
+
+                            <td>
+                                @(string.IsNullOrWhiteSpace(
+                                    documento.RazonModificacion)
+                                    ? "Sin razón especificada"
+                                    : documento.RazonModificacion)
+                            </td>
+
+                            <td class="text-end fw-semibold
+                                       @claseMontoRelacionado">
+                                @signoRelacionado RD$
+                                @montoRelacionado.ToString("N2")
+                            </td>
+
+                            <td>
+                                <span class="badge
+                                             @claseEstadoRelacionado">
+                                    @estadoRelacionado
+                                </span>
+                            </td>
+
+                            <td class="text-end no-print">
+                                <a class="btn btn-sm
+                                          btn-outline-primary"
+                                   asp-action="Detalle"
+                                   asp-route-id="@documento.Id">
+                                    Ver detalle
+                                </a>
+                            </td>
+
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+}
+
+<div class="content-card mb-4">
+
+    <h2 class="h5 mb-3">
+        Datos del comprador
+    </h2>
+
+    <div class="row g-3">
+
+        <div class="col-md-6">
+            <span class="text-muted d-block">
+                Nombre o razón social
+            </span>
+
+            <strong>
+                @razonSocial
+            </strong>
+        </div>
+
+        <div class="col-md-3">
+            <span class="text-muted d-block">
+                RNC o cédula
+            </span>
+
+            <span>
+                @(string.IsNullOrWhiteSpace(identificacion)
+                    ? "No identificado"
+                    : identificacion)
+            </span>
+        </div>
+
+        <div class="col-md-3">
+            <span class="text-muted d-block">
+                Correo electrónico
+            </span>
+
+            <span>
+                @(string.IsNullOrWhiteSpace(correo)
+                    ? "No especificado"
+                    : correo)
+            </span>
+        </div>
+
+        <div class="col-md-12">
+            <span class="text-muted d-block">
+                Dirección
+            </span>
+
+            <span>
+                @(string.IsNullOrWhiteSpace(direccion)
+                    ? "No especificada"
+                    : direccion)
+            </span>
+        </div>
+
+    </div>
+
+</div>
+
+<div class="content-card mb-4">
+
+    <h2 class="h5 mb-3">
+        Detalle de bienes y servicios
+    </h2>
+
+    <div class="table-responsive">
+
+        <table class="table table-hover align-middle">
+
+            <thead>
+                <tr>
+                    <th>Línea</th>
+                    <th>Código y descripción</th>
+                    <th>Tipo</th>
+                    <th>Unidad</th>
+                    <th class="text-end">
+                        Cantidad
+                    </th>
+                    <th class="text-end">
+                        Precio
+                    </th>
+                    <th class="text-end">
+                        ITBIS
+                    </th>
+                    <th class="text-end">
+                        Total línea
+                    </th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                @foreach (var detalle in Model.Detalles
+                    .OrderBy(x => x.NumeroLinea))
+                {
+                    var tipoItem =
+                        detalle.IndicadorBienOServicio ==
+                        TipoItemDgii.Bien
+                            ? "Bien"
+                            : "Servicio";
+
+                    var unidad = "No especificada";
+
+                    if (detalle.UnidadMedidaCodigo.HasValue &&
+                        CatalogosDgii.UnidadesMedida.TryGetValue(
+                            detalle.UnidadMedidaCodigo.Value,
+                            out var nombreUnidad))
+                    {
+                        unidad =
+                            $"{detalle.UnidadMedidaCodigo.Value} - " +
+                            nombreUnidad;
+                    }
+
+                    var clasificacion =
+                        CatalogosDgii.IndicadoresFacturacion
+                            .TryGetValue(
+                                detalle.IndicadorFacturacion,
+                                out var indicadorTexto)
+                            ? indicadorTexto
+                            : "Indicador desconocido";
+
+                    var totalLinea =
+                        detalle.Subtotal +
+                        detalle.Itbis;
+
+                    <tr>
+
+                        <td>
+                            @detalle.NumeroLinea
+                        </td>
+
+                        <td>
+                            <strong>
+                                @detalle.CodigoProducto
+                            </strong>
+
+                            <br />
+
+                            <span>
+                                @detalle.NombreItem
+                            </span>
+
+                            <br />
+
+                            <small class="text-muted">
+                                @clasificacion
+                            </small>
+                        </td>
+
+                        <td>
+                            <span class="badge
+                                @(tipoItem == "Bien"
+                                    ? "bg-primary"
+                                    : "bg-info text-dark")">
+                                @tipoItem
+                            </span>
+                        </td>
+
+                        <td>
+                            @unidad
+                        </td>
+
+                        <td class="text-end">
+                            @detalle.Cantidad.ToString("N2")
+                        </td>
+
+                        <td class="text-end">
+                            RD$
+                            @detalle.PrecioUnitario.ToString("N4")
+                        </td>
+
+                        <td class="text-end">
+                            RD$
+                            @detalle.Itbis.ToString("N2")
+                        </td>
+
+                        <td class="text-end fw-semibold">
+                            RD$
+                            @totalLinea.ToString("N2")
+                        </td>
+
+                    </tr>
+                }
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+<div class="row justify-content-end">
+
+    <div class="col-md-5 col-lg-4">
+
+        <div class="content-card">
+
+            <div class="d-flex justify-content-between mb-2">
+                <span>
+                    Subtotal facturable:
+                </span>
+
+                <strong>
+                    RD$ @Model.Subtotal.ToString("N2")
+                </strong>
+            </div>
+
+            <div class="d-flex justify-content-between mb-2">
+                <span>
+                    ITBIS:
+                </span>
+
+                <strong>
+                    RD$ @Model.Itbis.ToString("N2")
+                </strong>
+            </div>
+
+            <div class="d-flex justify-content-between mb-2">
+                <span>
+                    Monto no facturable:
+                </span>
+
+                <strong>
+                    RD$ @Model.MontoNoFacturable.ToString("N2")
+                </strong>
+            </div>
+
+            <hr />
+
+            <div class="d-flex justify-content-between mb-2">
+                <span class="h5">
+                    Monto total:
+                </span>
+
+                <strong class="h5 text-primary">
+                    RD$ @Model.Total.ToString("N2")
+                </strong>
+            </div>
+
+            @if (Model.MontoNoFacturable != 0)
+            {
+                <div class="d-flex justify-content-between">
+                    <span>
+                        Monto período:
+                    </span>
+
+                    <strong>
+                        RD$ @montoPeriodo.ToString("N2")
+                    </strong>
+                </div>
+            }
+
+        </div>
+
+    </div>
+
+</div>

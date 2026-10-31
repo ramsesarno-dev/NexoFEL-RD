@@ -1,7 +1,441 @@
+@model NexoFELRD.Web.Models.ViewModels.InventarioIndexViewModel
+@using NexoFELRD.Web.Models
+
 @{
     ViewData["Title"] = "Inventario";
+
+    int productosBajos = Model.Productos.Count(
+        x => x.ExistenciaBaja);
 }
+
 <div class="page-heading">
-    <div><p class="eyebrow">CONTROL</p><h1>Inventario</h1><p class="text-muted">Movimientos y alertas de existencias.</p></div>
+    <div>
+        <p class="eyebrow">INVENTARIO</p>
+        <h1>Control de inventario</h1>
+
+        <p class="text-muted">
+            Existencias actuales e historial de movimientos.
+        </p>
+    </div>
+
+    <a class="btn btn-primary"
+       asp-action="Registrar">
+        Registrar movimiento
+    </a>
 </div>
-<div class="empty-state"><h2>El módulo está creado</h2><p>Los movimientos se conectarán a la confirmación de facturas en la tercera etapa.</p></div>
+
+@if (TempData["Exito"] is string mensaje)
+{
+    <div class="alert alert-success alert-dismissible fade show"
+         role="alert">
+        @mensaje
+
+        <button type="button"
+                class="btn-close"
+                data-bs-dismiss="alert">
+        </button>
+    </div>
+}
+
+<div asp-validation-summary="ModelOnly"
+     class="alert alert-danger">
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="metric-card h-100">
+            <span>Productos controlados</span>
+            <strong>@Model.Productos.Count</strong>
+            <small>Bienes incluidos en el inventario</small>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="metric-card h-100">
+            <span>Alertas de existencia</span>
+
+            <strong class="@(productosBajos > 0
+                                    ? "text-danger"
+                                    : "")">
+                @productosBajos
+            </strong>
+
+            <small>
+                Productos con cinco unidades o menos
+            </small>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="metric-card h-100">
+            <span>Movimientos mostrados</span>
+            <strong>@Model.Movimientos.Count</strong>
+            <small>Máximo de 300 registros por consulta</small>
+        </div>
+    </div>
+</div>
+
+<div class="content-card mb-4">
+    <h2 class="h5 mb-3">Filtros</h2>
+
+    <form method="get"
+          asp-action="Index"
+          class="row g-3">
+
+        <div class="col-lg-3">
+            <label asp-for="Buscar"
+                   class="form-label">
+                Búsqueda
+            </label>
+
+            <input asp-for="Buscar"
+                   class="form-control"
+                   placeholder="Código, producto, usuario u observación" />
+        </div>
+
+        <div class="col-lg-3">
+            <label asp-for="ProductoId"
+                   class="form-label">
+                Producto
+            </label>
+
+            <select asp-for="ProductoId"
+                    asp-items="Model.ProductosFiltro"
+                    class="form-select">
+                <option value="">Todos los productos</option>
+            </select>
+        </div>
+
+        <div class="col-lg-2">
+            <label asp-for="Tipo"
+                   class="form-label">
+                Movimiento
+            </label>
+
+            <select asp-for="Tipo"
+                    asp-items="Model.TiposFiltro"
+                    class="form-select">
+                <option value="">Todos</option>
+            </select>
+        </div>
+
+        <div class="col-md-6 col-lg-2">
+            <label asp-for="Desde"
+                   class="form-label">
+                Desde
+            </label>
+
+            <input asp-for="Desde"
+                   class="form-control"
+                   type="date" />
+        </div>
+
+        <div class="col-md-6 col-lg-2">
+            <label asp-for="Hasta"
+                   class="form-label">
+                Hasta
+            </label>
+
+            <input asp-for="Hasta"
+                   class="form-control"
+                   type="date" />
+        </div>
+
+        <div class="col-12 d-flex flex-wrap gap-2">
+            <button class="btn btn-outline-primary"
+                    type="submit">
+                Aplicar filtros
+            </button>
+
+            <a class="btn btn-outline-secondary"
+               asp-action="Index">
+                Limpiar
+            </a>
+        </div>
+    </form>
+</div>
+
+<div class="content-card mb-4">
+    <div class="mb-3">
+        <h2 class="h5 mb-1">Existencias actuales</h2>
+
+        <p class="text-muted mb-0">
+            Solo se incluyen bienes; los servicios no
+            controlan existencia.
+        </p>
+    </div>
+
+    @if (!Model.Productos.Any())
+    {
+        <div class="text-center py-4">
+            <h3 class="h6">No se encontraron productos</h3>
+
+            <p class="text-muted mb-0">
+                Cambia los filtros o registra productos
+                inventariables.
+            </p>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Producto</th>
+                        <th>Unidad de medida</th>
+                        <th class="text-end">Existencia</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach (var producto in Model.Productos)
+                    {
+                        <tr>
+                            <td class="fw-semibold">
+                                @producto.Codigo
+                            </td>
+
+                            <td>@producto.Nombre</td>
+
+                            <td>@producto.UnidadMedida</td>
+
+                            <td class="text-end fw-semibold
+                                        @(producto.ExistenciaBaja
+                                                                    ? "text-danger"
+                                                                    : "")">
+                        @($"{producto.Existencia:N2}")
+                    </td>
+
+                            <td>
+                        @if (!producto.Activo)
+                                {
+                                    <span class="badge text-bg-secondary">
+                                        Inactivo
+                                    </span>
+                                }
+                                else if (producto.ExistenciaBaja)
+                                {
+                                    <span class="badge text-bg-danger">
+                                        Existencia baja
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge text-bg-success">
+                                        Disponible
+                                    </span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<div class="content-card">
+    <div class="mb-3">
+        <h2 class="h5 mb-1">
+            Historial de movimientos
+        </h2>
+
+        <p class="text-muted mb-0">
+            Registro auditable de entradas, salidas y ajustes.
+        </p>
+    </div>
+
+    @if (!Model.Movimientos.Any())
+    {
+        <div class="text-center py-5">
+            <h3 class="h6">
+                No hay movimientos registrados
+            </h3>
+
+            <p class="text-muted mb-3">
+                Registra una entrada, salida o ajuste para
+                comenzar el historial.
+            </p>
+
+            <a class="btn btn-primary"
+               asp-action="Registrar">
+                Registrar primer movimiento
+            </a>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Producto</th>
+                        <th>Tipo</th>
+                        <th>Motivo</th>
+                        <th class="text-end">Cantidad</th>
+                        <th class="text-end">Anterior</th>
+                        <th class="text-end">Resultante</th>
+                        <th>Origen</th>
+                        <th>Usuario</th>
+                        <th>Observación</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach (var movimiento in Model.Movimientos)
+                    {
+                        bool esEntrada =
+                        movimiento.Tipo ==
+                        TipoMovimiento.Entrada ||
+                        movimiento.Tipo ==
+                        TipoMovimiento.AjustePositivo;
+
+                        string signo = esEntrada ? "+" : "-";
+
+                        <tr>
+                            <td class="text-nowrap">
+                                @movimiento.Fecha.ToString(
+                                "dd/MM/yyyy hh:mm tt")
+                    </td>
+
+                    <td>
+                        <div class="fw-semibold">
+                            @movimiento.CodigoProducto
+                        </div>
+
+                        <small class="text-muted">
+                            @movimiento.NombreProducto
+                            · @movimiento.UnidadMedida
+                        </small>
+                    </td>
+
+                    <td>
+                        <span class="badge
+                                    @(esEntrada
+                                                                      ? "text-bg-success"
+                                                                      : "text-bg-danger")">
+                            @ObtenerNombreTipo(
+                                                        movimiento.Tipo)
+                        </span>
+                    </td>
+
+                    <td>
+                        @ObtenerNombreMotivo(
+                                                movimiento.Motivo)
+                    </td>
+
+                    <td class="text-end fw-semibold
+                                @(esEntrada
+                                                            ? "text-success"
+                                                            : "text-danger")">
+                        @($"{signo}{movimiento.Cantidad:N2}")
+                    </td>
+
+                            <td class="text-end">
+                                @($"{movimiento.ExistenciaAnterior:N2}")
+                            </td>
+
+                            <td class="text-end fw-semibold">
+                                @($"{movimiento.ExistenciaResultante:N2}")
+                            </td>
+
+                            <td>
+                        @if (movimiento.FacturaId.HasValue)
+                                {
+                                    <span>
+                                        Factura
+                                        #@movimiento.FacturaId
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span>Manual</span>
+                                }
+                        </td>
+
+                        <td>
+                            @movimiento.UsuarioNombre
+                        </td>
+
+                        <td>
+                            @(string.IsNullOrWhiteSpace(
+                                                    movimiento.Observacion)
+                                                    ? "-"
+                                                    : movimiento.Observacion)
+                    </td>
+                </tr>
+                                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@functions {
+    private static string ObtenerNombreTipo(
+        TipoMovimiento tipo)
+    {
+        return tipo switch
+        {
+            TipoMovimiento.Entrada =>
+                "Entrada",
+
+            TipoMovimiento.Salida =>
+                "Salida",
+
+            TipoMovimiento.AjustePositivo =>
+                "Ajuste positivo",
+
+            TipoMovimiento.AjusteNegativo =>
+                "Ajuste negativo",
+
+            _ => tipo.ToString()
+        };
+    }
+
+    private static string ObtenerNombreMotivo(
+        MotivoMovimientoInventario motivo)
+    {
+        return motivo switch
+        {
+            MotivoMovimientoInventario.InventarioInicial =>
+                "Inventario inicial",
+
+            MotivoMovimientoInventario.Compra =>
+                "Compra",
+
+            MotivoMovimientoInventario.DevolucionCliente =>
+                "Devolución del cliente",
+
+            MotivoMovimientoInventario.Venta =>
+                "Venta",
+
+            MotivoMovimientoInventario.AnulacionFactura =>
+                "Anulación de factura",
+
+            MotivoMovimientoInventario.Merma =>
+                "Merma",
+
+            MotivoMovimientoInventario.Deterioro =>
+                "Producto deteriorado",
+
+            MotivoMovimientoInventario.DevolucionProveedor =>
+                "Devolución al proveedor",
+
+            MotivoMovimientoInventario.ConteoFisico =>
+                "Conteo físico",
+
+            MotivoMovimientoInventario.Correccion =>
+                "Corrección",
+
+            MotivoMovimientoInventario.Otro =>
+                "Otro",
+
+            _ => motivo.ToString()
+        };
+    }
+}

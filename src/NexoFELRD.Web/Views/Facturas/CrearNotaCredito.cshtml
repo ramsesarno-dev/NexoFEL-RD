@@ -1,0 +1,545 @@
+@model NexoFELRD.Web.Models.ViewModels.NotaCreditoCrearViewModel
+@using NexoFELRD.Web.Models
+@using System.Globalization
+
+@{
+    ViewData["Title"] = "Nueva nota de crédito";
+
+    var factura = Model.FacturaAfectada!;
+
+    var tipoOriginal = factura.TipoComprobante switch
+    {
+        TipoComprobante.CreditoFiscal =>
+            "E31 - Crédito fiscal",
+
+        TipoComprobante.Consumo =>
+            "E32 - Consumo",
+
+        TipoComprobante.Compras =>
+            "E41 - Compras",
+
+        TipoComprobante.GastosMenores =>
+            "E43 - Gastos menores",
+
+        TipoComprobante.RegimenesEspeciales =>
+            "E44 - Regímenes especiales",
+
+        TipoComprobante.Gubernamental =>
+            "E45 - Gubernamental",
+
+        TipoComprobante.Exportaciones =>
+            "E46 - Exportaciones",
+
+        TipoComprobante.PagosExterior =>
+            "E47 - Pagos al exterior",
+
+        _ => factura.TipoComprobante.ToString()
+    };
+}
+
+<div class="page-heading">
+    <div>
+        <p class="eyebrow">
+            FACTURACIÓN ELECTRÓNICA
+        </p>
+
+        <h1>Nueva nota de crédito</h1>
+
+        <p class="text-muted">
+            Emite una E34 para modificar el comprobante
+            electrónico seleccionado.
+        </p>
+    </div>
+
+    <a class="btn btn-outline-secondary"
+       asp-action="Detalle"
+       asp-route-id="@Model.FacturaAfectadaId">
+        Volver a la factura
+    </a>
+</div>
+
+<div asp-validation-summary="ModelOnly"
+     class="alert alert-danger">
+</div>
+
+<div class="content-card mb-4">
+    <h2 class="h5 mb-4">
+        Comprobante afectado
+    </h2>
+
+    <div class="row g-4">
+
+        <div class="col-md-3">
+            <span class="text-muted">
+                Número interno
+            </span>
+
+            <div class="fw-semibold">
+                @factura.NumeroInterno
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <span class="text-muted">
+                e-NCF
+            </span>
+
+            <div class="fw-semibold">
+                @factura.ENCF
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <span class="text-muted">
+                Tipo
+            </span>
+
+            <div class="fw-semibold">
+                @tipoOriginal
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <span class="text-muted">
+                Fecha de emisión
+            </span>
+
+            <div class="fw-semibold">
+                @factura.FechaEmision.ToString("dd/MM/yyyy")
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <span class="text-muted">
+                Comprador
+            </span>
+
+            <div class="fw-semibold">
+                @factura.Comprador
+            </div>
+
+            <small class="text-muted">
+                @factura.IdentificacionFiscal
+            </small>
+        </div>
+
+        <div class="col-md-2">
+            <span class="text-muted">
+                Total original
+            </span>
+
+            <div class="fw-semibold">
+                RD$ @factura.TotalOriginal.ToString("N2")
+            </div>
+        </div>
+
+        <div class="col-md-2">
+            <span class="text-muted">
+                Ya acreditado
+            </span>
+
+            <div class="fw-semibold">
+                RD$ @factura.MontoAcreditado.ToString("N2")
+            </div>
+        </div>
+
+        <div class="col-md-2">
+            <span class="text-muted">
+                Disponible
+            </span>
+
+            <div class="fw-semibold text-primary">
+                RD$ @factura.MontoDisponible.ToString("N2")
+            </div>
+        </div>
+
+        @if (factura.MontoNoFacturableOriginal > 0)
+        {
+            <div class="col-md-3">
+                <span class="text-muted">
+                    Monto no facturable original
+                </span>
+
+                <div class="fw-semibold">
+                    RD$
+                    @factura.MontoNoFacturableOriginal.ToString("N2")
+                </div>
+            </div>
+        }
+
+    </div>
+</div>
+
+<div id="alertaTreintaDias"
+     data-fecha-original="@factura.FechaEmision.ToString("yyyy-MM-dd")"
+     class="alert alert-warning @(factura.MayorDeTreintaDias ? "" : "d-none")">
+
+    Han transcurrido más de 30 días desde la emisión del
+    comprobante. El indicador de la nota de crédito será
+    establecido automáticamente y el ITBIS no será acreditado.
+</div>
+
+<form asp-action="CrearNotaCredito"
+      method="post"
+      id="formNotaCredito">
+
+    <input asp-for="FacturaAfectadaId"
+           type="hidden" />
+
+    <div class="content-card mb-4">
+
+        <h2 class="h5 mb-4">
+            Información de la nota
+        </h2>
+
+        <div class="row g-3">
+
+            <div class="col-md-4">
+                <label asp-for="FechaEmision"
+                       class="form-label">
+                    Fecha de emisión
+                </label>
+
+                <input asp-for="FechaEmision"
+                       class="form-control" />
+
+                <span asp-validation-for="FechaEmision"
+                      class="text-danger">
+                </span>
+            </div>
+
+            <div class="col-md-8">
+                <label asp-for="CodigoModificacion"
+                       class="form-label">
+                    Código de modificación
+                </label>
+
+                <select asp-for="CodigoModificacion"
+                        class="form-select">
+
+                    <option value="1">
+                        1 - Anulación total
+                    </option>
+
+                    <option value="2">
+                        2 - Corrección de texto
+                    </option>
+
+                    <option value="3">
+                        3 - Corrección de montos
+                    </option>
+
+                </select>
+
+                <span asp-validation-for="CodigoModificacion"
+                      class="text-danger">
+                </span>
+            </div>
+
+            <div class="col-12">
+                <div id="ayudaCodigo"
+                     class="alert alert-info mb-0">
+                </div>
+            </div>
+
+            <div class="col-12">
+                <label asp-for="RazonModificacion"
+                       class="form-label">
+                    Razón de la modificación
+                </label>
+
+                <textarea asp-for="RazonModificacion"
+                          class="form-control"
+                          rows="3"
+                          maxlength="90"
+                          placeholder="Explique la razón de la nota de crédito">
+                </textarea>
+
+                <div class="form-text">
+                    Máximo 90 caracteres.
+                </div>
+
+                <span asp-validation-for="RazonModificacion"
+                      class="text-danger">
+                </span>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="content-card mb-4">
+
+        <div class="mb-4">
+            <h2 class="h5 mb-1">
+                Líneas del comprobante
+            </h2>
+
+            <p class="text-muted mb-0">
+                Indique las cantidades que serán acreditadas.
+                El reintegro de inventario solo debe marcarse
+                cuando el bien haya regresado físicamente.
+            </p>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+
+                <thead>
+                    <tr>
+                        <th>Línea</th>
+                        <th>Bien o servicio</th>
+                        <th>Unidad</th>
+                        <th class="text-end">Original</th>
+                        <th class="text-end">Acreditada</th>
+                        <th class="text-end">Disponible</th>
+                        <th style="width: 170px;">
+                            Cantidad a acreditar
+                        </th>
+                        <th class="text-center">
+                            Reintegrar
+                        </th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @for (var indice = 0;
+                          indice < Model.Detalles.Count;
+                          indice++)
+                    {
+                        var detalle = Model.Detalles[indice];
+
+                        var cantidadMaxima =
+                            detalle.CantidadDisponible.ToString(
+                                CultureInfo.InvariantCulture);
+
+                        <tr>
+                            <td>
+                                @detalle.NumeroLinea
+                            </td>
+
+                            <td>
+                                <input asp-for="Detalles[indice].FacturaDetalleAfectadoId"
+                                       type="hidden" />
+
+                                <div class="fw-semibold">
+                                    @detalle.CodigoProducto
+                                </div>
+
+                                <small class="text-muted">
+                                    @detalle.NombreItem
+                                </small>
+                            </td>
+
+                            <td>
+                                @detalle.UnidadMedida
+                            </td>
+
+                            <td class="text-end">
+                                @detalle.CantidadOriginal.ToString("N2")
+                            </td>
+
+                            <td class="text-end">
+                                @detalle.CantidadAcreditada.ToString("N2")
+                            </td>
+
+                            <td class="text-end fw-semibold">
+                                @detalle.CantidadDisponible.ToString("N2")
+                            </td>
+
+                            <td>
+                                <input asp-for="Detalles[indice].Cantidad"
+                                       class="form-control cantidad-credito"
+                                       type="number"
+                                       min="0"
+                                       max="@cantidadMaxima"
+                                       step="0.01"
+                                       data-max="@cantidadMaxima" />
+
+                                <span asp-validation-for="Detalles[indice].Cantidad"
+                                      class="text-danger">
+                                </span>
+                            </td>
+
+                            <td class="text-center">
+                                @if (detalle.ControlaInventario)
+                                {
+                                    <input asp-for="Detalles[indice].ReintegrarInventario"
+                                           class="form-check-input reintegrar-inventario"
+                                           title="El bien regresó físicamente al inventario" />
+                                }
+                                else
+                                {
+                                    <input asp-for="Detalles[indice].ReintegrarInventario"
+                                           type="hidden"
+                                           value="false" />
+
+                                    <span class="text-muted">
+                                        No aplica
+                                    </span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+
+            </table>
+        </div>
+    </div>
+
+    <div class="alert alert-warning">
+        Las notas de crédito forman parte del historial fiscal
+        y no podrán editarse ni eliminarse después de emitirse.
+    </div>
+
+    <div class="d-flex gap-2">
+        <button class="btn btn-primary"
+                type="submit">
+            Emitir nota de crédito
+        </button>
+
+        <a class="btn btn-outline-secondary"
+           asp-action="Detalle"
+           asp-route-id="@Model.FacturaAfectadaId">
+            Cancelar
+        </a>
+    </div>
+
+</form>
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        (() => {
+            const codigo =
+                document.getElementById(
+                    "CodigoModificacion");
+
+            const fecha =
+                document.getElementById(
+                    "FechaEmision");
+
+            const ayuda =
+                document.getElementById(
+                    "ayudaCodigo");
+
+            const alertaTreintaDias =
+                document.getElementById(
+                    "alertaTreintaDias");
+
+            const cantidades =
+                document.querySelectorAll(
+                    ".cantidad-credito");
+
+            function actualizarCodigo() {
+                const valor =
+                    Number(codigo.value);
+
+                cantidades.forEach(input => {
+                    const maximo =
+                        Number(
+                            input.dataset.max || 0);
+
+                    const fila =
+                        input.closest("tr");
+
+                    const reintegro =
+                        fila?.querySelector(
+                            ".reintegrar-inventario");
+
+                    if (valor === 1) {
+                        input.value =
+                            maximo.toFixed(2);
+
+                        input.readOnly = true;
+                        input.disabled = maximo <= 0;
+
+                        if (reintegro) {
+                            reintegro.disabled =
+                                maximo <= 0;
+                        }
+                    }
+                    else if (valor === 2) {
+                        input.value = "0";
+                        input.readOnly = true;
+                        input.disabled = true;
+
+                        if (reintegro) {
+                            reintegro.checked = false;
+                            reintegro.disabled = true;
+                        }
+                    }
+                    else {
+                        input.readOnly = false;
+                        input.disabled = maximo <= 0;
+
+                        if (reintegro) {
+                            reintegro.disabled =
+                                maximo <= 0;
+                        }
+                    }
+                });
+
+                ayuda.textContent =
+                    valor === 1
+                        ? "La nota acreditará todas las cantidades disponibles y anulará económicamente el comprobante."
+                        : valor === 2
+                            ? "La nota tendrá monto cero y solo documentará una corrección de texto."
+                            : "Seleccione las cantidades que serán disminuidas del comprobante original.";
+            }
+
+            function convertirFechaUtc(valor) {
+                const partes =
+                    valor.split("-")
+                        .map(Number);
+
+                if (partes.length !== 3) {
+                    return null;
+                }
+
+                return Date.UTC(
+                    partes[0],
+                    partes[1] - 1,
+                    partes[2]);
+            }
+
+            function actualizarIndicadorDias() {
+                const fechaOriginal =
+                    convertirFechaUtc(
+                        alertaTreintaDias
+                            .dataset
+                            .fechaOriginal);
+
+                const fechaNota =
+                    convertirFechaUtc(
+                        fecha.value);
+
+                if (fechaOriginal === null ||
+                    fechaNota === null) {
+                    return;
+                }
+
+                const dias =
+                    Math.floor(
+                        (fechaNota - fechaOriginal) /
+                        86400000);
+
+                alertaTreintaDias.classList.toggle(
+                    "d-none",
+                    dias <= 30);
+            }
+
+            codigo.addEventListener(
+                "change",
+                actualizarCodigo);
+
+            fecha.addEventListener(
+                "change",
+                actualizarIndicadorDias);
+
+            actualizarCodigo();
+            actualizarIndicadorDias();
+        })();
+    </script>
+}

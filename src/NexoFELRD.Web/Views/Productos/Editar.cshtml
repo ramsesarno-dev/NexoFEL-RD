@@ -1,4 +1,7 @@
-@model NexoFELRD.Web.Models.Producto
+@model NexoFELRD.Web.Models.ViewModels.ProductoEditarViewModel
+
+@using System.Globalization
+@using NexoFELRD.Web.Models
 
 @{
     ViewData["Title"] = "Editar producto";
@@ -6,23 +9,22 @@
 
 <div class="page-heading">
     <div>
-        <p class="eyebrow">PRODUCTOS</p>
-        <h1>Editar producto</h1>
+        <p class="eyebrow">PRODUCTOS Y SERVICIOS</p>
+
+        <h1>Editar producto o servicio</h1>
 
         <p class="text-muted">
-            Actualiza los datos del producto.
+            Actualiza los datos comerciales y fiscales del ítem.
         </p>
     </div>
 </div>
 
 <div class="content-card">
-
     <form asp-action="Editar"
           asp-route-id="@Model.Id"
           method="post">
 
         <input asp-for="Id" type="hidden" />
-        <input asp-for="Activo" type="hidden" />
 
         <div asp-validation-summary="ModelOnly"
              class="text-danger mb-3">
@@ -31,8 +33,8 @@
         <div class="row g-3">
 
             <div class="col-md-4">
-                <label asp-for="Codigo" class="form-label">
-                    Código
+                <label asp-for="Codigo"
+                       class="form-label">
                 </label>
 
                 <input asp-for="Codigo"
@@ -44,7 +46,9 @@
             </div>
 
             <div class="col-md-8">
-                <label asp-for="Nombre" class="form-label"></label>
+                <label asp-for="Nombre"
+                       class="form-label">
+                </label>
 
                 <input asp-for="Nombre"
                        class="form-control" />
@@ -54,14 +58,35 @@
                 </span>
             </div>
 
-            <div class="col-md-4">
-                <label asp-for="Precio" class="form-label"></label>
+            <div class="col-12">
+                <label asp-for="Descripcion"
+                       class="form-label">
+                </label>
 
-                <input asp-for="Precio"
-                       class="form-control"
-                       type="number"
-                       min="0"
-                       step="0.01" />
+                <textarea asp-for="Descripcion"
+                          class="form-control"
+                          rows="3"></textarea>
+
+                <span asp-validation-for="Descripcion"
+                      class="text-danger">
+                </span>
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="Precio"
+                       class="form-label">
+                </label>
+
+                <div class="input-group">
+                    <span class="input-group-text">RD$</span>
+
+                    <input asp-for="Precio"
+                           class="form-control"
+                           type="number"
+                           min="0"
+                           step="0.0001"
+                           inputmode="decimal" />
+                </div>
 
                 <span asp-validation-for="Precio"
                       class="text-danger">
@@ -71,31 +96,18 @@
             <div class="col-md-4">
                 <label asp-for="IndicadorFacturacion"
                        class="form-label">
-                    Indicador de facturación DGII
                 </label>
 
                 <select asp-for="IndicadorFacturacion"
                         class="form-select">
 
-                    <option value="1">
-                        ITBIS 18%
-                    </option>
-
-                    <option value="2">
-                        ITBIS 16%
-                    </option>
-
-                    <option value="3">
-                        ITBIS 0%
-                    </option>
-
-                    <option value="4">
-                        Exento
-                    </option>
-
-                    <option value="0">
-                        No facturable
-                    </option>
+                    @foreach (var indicador in
+                                        CatalogosDgii.IndicadoresFacturacion)
+                    {
+                        <option value="@indicador.Key">
+                            @indicador.Key - @indicador.Value
+                        </option>
+                    }
 
                 </select>
 
@@ -105,28 +117,107 @@
             </div>
 
             <div class="col-md-4">
-                <label asp-for="Existencia"
+                <label asp-for="IndicadorBienOServicio"
                        class="form-label">
                 </label>
 
-                <input asp-for="Existencia"
-                       class="form-control"
-                       type="number"
-                       min="0" />
+                <select asp-for="IndicadorBienOServicio"
+                        class="form-select">
 
-                <span asp-validation-for="Existencia"
+                    <option value="@((int)TipoItemDgii.Bien)">
+                        1 - Bien
+                    </option>
+
+                    <option value="@((int)TipoItemDgii.Servicio)">
+                        2 - Servicio
+                    </option>
+
+                </select>
+
+                <span asp-validation-for="IndicadorBienOServicio"
                       class="text-danger">
                 </span>
             </div>
 
+            <div class="col-md-6">
+                <label asp-for="UnidadMedidaCodigo"
+                       class="form-label">
+                </label>
+
+                <select asp-for="UnidadMedidaCodigo"
+                        class="form-select">
+
+                    <option value="">
+                        Sin especificar
+                    </option>
+
+                    @foreach (var unidad in
+                                        CatalogosDgii.UnidadesMedida)
+                    {
+                        <option value="@unidad.Key">
+                            @unidad.Key - @unidad.Value
+                        </option>
+                    }
+
+                </select>
+
+                <span asp-validation-for="UnidadMedidaCodigo"
+                      class="text-danger">
+                </span>
+
+                <small id="ayudaUnidad"
+                       class="text-muted">
+                    Obligatoria para los bienes controlados
+                    en inventario.
+                </small>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="ExistenciaActual"
+                       class="form-label">
+                </label>
+
+                <div class="form-control bg-light">
+                    @Model.ExistenciaActual.ToString("N2")
+                </div>
+
+                <small class="text-muted">
+                    La existencia no puede modificarse desde
+                    este formulario.
+                </small>
+            </div>
+
         </div>
 
-        <div class="d-flex gap-2 mt-4">
+        <div id="alertaConversion"
+             class="alert alert-warning mt-4 d-none">
 
-            <button class="btn btn-primary"
+            Este producto no puede convertirse en servicio mientras
+            tenga existencia. Registra primero una salida o un ajuste
+            hasta llevar la existencia a cero.
+
+        </div>
+
+        <div class="alert alert-info mt-4 mb-0">
+            Para aumentar, reducir o corregir la existencia utiliza
+            el módulo de Inventario. Esto conserva el historial de
+            auditoría.
+        </div>
+
+        <div class="d-flex flex-wrap gap-2 mt-4">
+
+            <button id="botonGuardar"
+                    class="btn btn-primary"
                     type="submit">
                 Guardar cambios
             </button>
+
+            <a class="btn btn-outline-primary"
+               asp-controller="Inventario"
+               asp-action="Registrar"
+               asp-route-productoId="@Model.Id">
+                Registrar movimiento
+            </a>
 
             <a class="btn btn-outline-secondary"
                asp-action="Index">
@@ -137,3 +228,65 @@
 
     </form>
 </div>
+
+@section Scripts {
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js">
+    </script>
+
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js">
+    </script>
+
+    <script>
+        const tipoItem =
+            document.getElementById("IndicadorBienOServicio");
+
+        const unidadMedida =
+            document.getElementById("UnidadMedidaCodigo");
+
+        const ayudaUnidad =
+            document.getElementById("ayudaUnidad");
+
+        const alertaConversion =
+            document.getElementById("alertaConversion");
+
+        const botonGuardar =
+            document.getElementById("botonGuardar");
+
+        const existenciaActual =
+            @Model.ExistenciaActual.ToString(
+                CultureInfo.InvariantCulture);
+
+    function actualizarTipoItem() {
+        const esServicio =
+            tipoItem.value ===
+            "@((int)TipoItemDgii.Servicio)";
+
+        unidadMedida.required = !esServicio;
+
+        if (esServicio) {
+            ayudaUnidad.textContent =
+                "La unidad de medida es opcional " +
+                "para los servicios.";
+        } else {
+            ayudaUnidad.textContent =
+                "Obligatoria para los bienes controlados " +
+                "en inventario.";
+        }
+
+        const conversionInvalida =
+            esServicio && existenciaActual !== 0;
+
+        alertaConversion.classList.toggle(
+            "d-none",
+            !conversionInvalida);
+
+        botonGuardar.disabled = conversionInvalida;
+    }
+
+    tipoItem.addEventListener(
+        "change",
+        actualizarTipoItem);
+
+    actualizarTipoItem();
+</script>
+}

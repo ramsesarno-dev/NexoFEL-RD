@@ -22,6 +22,16 @@
                         <li class="nav-item"><a class="nav-link" asp-controller="Productos" asp-action="Index">Productos</a></li>
                         <li class="nav-item"><a class="nav-link" asp-controller="Facturas" asp-action="Index">Facturas</a></li>
                         <li class="nav-item"><a class="nav-link" asp-controller="Inventario" asp-action="Index">Inventario</a></li>
+                        @if (User.IsInRole("Administrador"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link"
+                                   asp-controller="Secuencias"
+                                   asp-action="Index">
+                                    Secuencias e-NCF
+                                </a>
+                            </li>
+                        }
                         <li class="nav-item"><a class="nav-link" asp-controller="Reportes" asp-action="Index">Reportes</a></li>
                     </ul>
                     <partial name="_LoginPartial" />

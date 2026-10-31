@@ -1,0 +1,309 @@
+@model IEnumerable<NexoFELRD.Web.Models.RangoComprobanteElectronico>
+@using NexoFELRD.Web.Models
+
+@{
+    ViewData["Title"] = "Secuencias e-NCF";
+
+    var disponibles = Model.Count(x => x.Disponible);
+
+    var agotados = Model.Count(x => x.Agotado);
+
+    var vencenPronto = Model.Count(x =>
+        x.Activo &&
+        !x.Agotado &&
+        !x.Vencido &&
+        x.FechaVencimiento.Date <=
+            DateTime.Today.AddDays(30));
+
+    var cantidadDisponible = Model
+        .Where(x => x.Disponible)
+        .Sum(x => x.CantidadDisponible);
+}
+
+<div class="page-heading">
+    <div>
+        <p class="eyebrow">CONFIGURACIÓN FISCAL</p>
+        <h1>Secuencias e-NCF</h1>
+
+        <p class="text-muted">
+            Administración local de rangos electrónicos simulados.
+        </p>
+    </div>
+
+    <a class="btn btn-primary"
+       asp-action="Crear">
+        Registrar rango
+    </a>
+</div>
+
+@if (TempData["Exito"] is string mensajeExito)
+{
+    <div class="alert alert-success alert-dismissible fade show"
+         role="alert">
+
+        @mensajeExito
+
+        <button type="button"
+                class="btn-close"
+                data-bs-dismiss="alert"
+                aria-label="Cerrar">
+        </button>
+    </div>
+}
+
+@if (TempData["Error"] is string mensajeError)
+{
+    <div class="alert alert-danger alert-dismissible fade show"
+         role="alert">
+
+        @mensajeError
+
+        <button type="button"
+                class="btn-close"
+                data-bs-dismiss="alert"
+                aria-label="Cerrar">
+        </button>
+    </div>
+}
+
+<div class="alert alert-warning">
+    Este módulo simula el control interno de secuencias.
+    Los rangos utilizados en producción deben haber sido
+    autorizados previamente por la DGII.
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="metric-card">
+            <span>Rangos disponibles</span>
+            <strong>@disponibles</strong>
+            <small>Activos, vigentes y con secuencias</small>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="metric-card">
+            <span>Secuencias disponibles</span>
+            <strong>@cantidadDisponible.ToString("N0")</strong>
+            <small>Total pendiente de utilizar</small>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="metric-card">
+            <span>Próximos a vencer</span>
+            <strong>@vencenPronto</strong>
+            <small>Vencen en treinta días o menos</small>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="metric-card">
+            <span>Rangos agotados</span>
+            <strong>@agotados</strong>
+            <small>Sin secuencias disponibles</small>
+        </div>
+    </div>
+</div>
+
+<div class="content-card">
+    @if (!Model.Any())
+    {
+        <div class="text-center py-5">
+            <h2 class="h5">
+                No hay rangos registrados
+            </h2>
+
+            <p class="text-muted">
+                Registra un rango para comenzar a generar e-NCF.
+            </p>
+
+            <a class="btn btn-primary"
+               asp-action="Crear">
+                Registrar primer rango
+            </a>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Comprobante</th>
+                        <th>Rango autorizado</th>
+                        <th>Próximo e-NCF</th>
+                        <th class="text-end">Disponibles</th>
+                        <th>Vencimiento</th>
+                        <th>Estado</th>
+                        <th>Registrado por</th>
+                        <th class="text-end">Acción</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach (var rango in Model)
+                    {
+                        var comprobante =
+                        rango.TipoComprobante switch
+                        {
+                            TipoComprobante.CreditoFiscal =>
+                                    "E31 - Crédito fiscal",
+
+                            TipoComprobante.Consumo =>
+                                    "E32 - Consumo",
+
+                            TipoComprobante.NotaDebito =>
+                                    "E33 - Nota de débito",
+
+                            TipoComprobante.NotaCredito =>
+                                    "E34 - Nota de crédito",
+
+                            TipoComprobante.Compras =>
+                                    "E41 - Compras",
+
+                            TipoComprobante.GastosMenores =>
+                                    "E43 - Gastos menores",
+
+                            TipoComprobante.RegimenesEspeciales =>
+                                    "E44 - Regímenes especiales",
+
+                            TipoComprobante.Gubernamental =>
+                                    "E45 - Gubernamental",
+
+                            TipoComprobante.Exportaciones =>
+                                    "E46 - Exportaciones",
+
+                            TipoComprobante.PagosExterior =>
+                                    "E47 - Pagos al exterior",
+
+                            _ => "Desconocido"
+                        };
+
+                        var estadoTexto = "Inactivo";
+                        var estadoClase = "text-bg-secondary";
+
+                        if (rango.Agotado)
+                        {
+                            estadoTexto = "Agotado";
+                            estadoClase = "text-bg-dark";
+                        }
+                        else if (rango.Vencido)
+                        {
+                            estadoTexto = "Vencido";
+                            estadoClase = "text-bg-danger";
+                        }
+                        else if (rango.Activo)
+                        {
+                            estadoTexto = "Disponible";
+                            estadoClase = "text-bg-success";
+                        }
+
+                        var proximoENCF = rango.Agotado
+                        ? "Sin disponibilidad"
+                        : $"{rango.Prefijo}" +
+                        $"{rango.ProximaSecuencia:D10}";
+
+                        <tr>
+                            <td>
+                                <strong>@comprobante</strong>
+                            </td>
+
+                            <td>
+                                <div>
+                                    @rango.Prefijo@rango.SecuenciaInicial.ToString("D10")
+                                </div>
+
+                                <small class="text-muted">
+                                    hasta
+                                    @rango.Prefijo@rango.SecuenciaFinal.ToString("D10")
+                                </small>
+                            </td>
+
+                            <td>
+                                <strong>@proximoENCF</strong>
+                            </td>
+
+                            <td class="text-end fw-semibold">
+                                @rango.CantidadDisponible.ToString("N0")
+                            </td>
+
+                            <td>
+                                @rango.FechaVencimiento.ToString("dd/MM/yyyy")
+                            </td>
+
+                            <td>
+                                <span class="badge @estadoClase">
+                                    @estadoTexto
+                                </span>
+
+                                @if (!rango.Activo &&
+                                                        !rango.Agotado &&
+                                                        !rango.Vencido)
+                                {
+                                    <small class="d-block text-muted">
+                                        Desactivado manualmente
+                                    </small>
+                                }
+                            </td>
+
+                            <td>
+                                <span>@rango.UsuarioNombre</span>
+
+                            <small class="text-muted">
+                                @(rango.FechaCreacion
+                                .ToLocalTime()
+                                .ToString("dd/MM/yyyy HH:mm"))
+                        </small>
+                            </td>
+
+                            <td class="text-end">
+                                @if (rango.Activo)
+                                {
+                                    <form asp-action="CambiarEstado"
+                                          method="post"
+                                          class="d-inline">
+
+                                        <input type="hidden"
+                                               name="id"
+                                               value="@rango.Id" />
+
+                                        <button type="submit"
+                                                class="btn btn-sm btn-outline-danger">
+                                            Desactivar
+                                        </button>
+                                    </form>
+                                }
+                                else if (!rango.Agotado &&
+                                !rango.Vencido)
+                                {
+                                    <form asp-action="CambiarEstado"
+                                          method="post"
+                                          class="d-inline">
+
+                                        <input type="hidden"
+                                               name="id"
+                                               value="@rango.Id" />
+
+                                        <button type="submit"
+                                                class="btn btn-sm btn-outline-success">
+                                            Activar
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-secondary"
+                                            disabled>
+                                        No disponible
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

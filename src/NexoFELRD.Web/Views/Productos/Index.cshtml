@@ -1,46 +1,81 @@
 @model IEnumerable<NexoFELRD.Web.Models.Producto>
 
+@using NexoFELRD.Web.Models
+
 @{
-    ViewData["Title"] = "Productos";
+    ViewData["Title"] = "Productos y servicios";
+
+    var esAdministrador =
+        User.IsInRole("Administrador");
+
+    var buscar =
+        ViewData["Buscar"]?.ToString() ?? string.Empty;
 }
 
 <div class="page-heading">
     <div>
         <p class="eyebrow">CATÁLOGO</p>
-        <h1>Productos</h1>
+
+        <h1>Productos y servicios</h1>
+
         <p class="text-muted">
-            Precios, impuestos y existencias.
+            Consulta precios, clasificación fiscal,
+            unidades de medida y existencias.
         </p>
     </div>
 
-    <a class="btn btn-primary" asp-action="Crear">
-        Nuevo producto
-    </a>
+    @if (esAdministrador)
+    {
+        <a class="btn btn-primary"
+           asp-action="Crear">
+            Nuevo producto o servicio
+        </a>
+    }
 </div>
 
-@if (TempData["Exito"] is string mensaje)
+@if (TempData["Exito"] is string mensajeExito)
 {
     <div class="alert alert-success alert-dismissible fade show"
          role="alert">
 
-        @mensaje
+        @mensajeExito
 
         <button type="button"
                 class="btn-close"
-                data-bs-dismiss="alert">
+                data-bs-dismiss="alert"
+                aria-label="Cerrar">
+        </button>
+    </div>
+}
+
+@if (TempData["Error"] is string mensajeError)
+{
+    <div class="alert alert-danger alert-dismissible fade show"
+         role="alert">
+
+        @mensajeError
+
+        <button type="button"
+                class="btn-close"
+                data-bs-dismiss="alert"
+                aria-label="Cerrar">
         </button>
     </div>
 }
 
 <div class="content-card">
 
-    <form method="get" class="row g-2 mb-4">
+    <form asp-action="Index"
+          method="get"
+          class="row g-2 mb-4">
 
-        <div class="col-md-6">
+        <div class="col-md-7 col-lg-6">
             <input class="form-control"
+                   type="search"
                    name="buscar"
-                   value="@ViewData["Buscar"]"
-                   placeholder="Buscar por código o nombre" />
+                   value="@buscar"
+                   placeholder="Buscar por código o nombre"
+                   aria-label="Buscar productos y servicios" />
         </div>
 
         <div class="col-auto">
@@ -48,7 +83,9 @@
                     type="submit">
                 Buscar
             </button>
+        </div>
 
+        <div class="col-auto">
             <a class="btn btn-outline-secondary"
                asp-action="Index">
                 Limpiar
@@ -57,31 +94,27 @@
 
     </form>
 
-    @if (!Model.Any())
-    {
-        <div class="text-center py-5">
-            <h2 class="h5">No hay productos registrados</h2>
-
-            <p class="text-muted mb-0">
-                Registra el primer producto para comenzar.
-            </p>
-        </div>
-    }
-    else
+    @if (Model.Any())
     {
         <div class="table-responsive">
 
-            <table class="table table-hover align-middle mb-0">
+            <table class="table align-middle mb-0">
 
                 <thead>
                     <tr>
                         <th>Código</th>
                         <th>Nombre</th>
-                        <th>Precio</th>
-                        <th>ITBIS</th>
-                        <th>Existencia</th>
+                        <th>Tipo</th>
+                        <th>Indicador DGII</th>
+                        <th>Unidad de medida</th>
+                        <th class="text-end">Precio</th>
+                        <th class="text-end">Existencia</th>
                         <th>Estado</th>
-                        <th class="text-end">Acciones</th>
+
+                        @if (esAdministrador)
+                        {
+                            <th class="text-end">Acciones</th>
+                        }
                     </tr>
                 </thead>
 
@@ -89,71 +122,160 @@
 
                     @foreach (var producto in Model)
                     {
+                        var puedeCambiarEstado =
+                        !producto.Activo ||
+                        !producto.ControlaInventario ||
+                        producto.Existencia == 0;
+
+                        var existenciaBaja =
+                        producto.Activo &&
+                        producto.ControlaInventario &&
+                        producto.Existencia <= 5;
+
                         <tr>
-                            <td class="fw-semibold">
-                                @producto.Codigo
+                            <td>
+                                <strong>@producto.Codigo</strong>
                             </td>
 
                             <td>
-                                @producto.Nombre
+                                <div>
+                                    @producto.Nombre
+                                </div>
+
+                                @if (!string.IsNullOrWhiteSpace(
+                                                        producto.Descripcion))
+                                {
+                                    <small class="text-muted">
+                                        @producto.Descripcion
+                                    </small>
+                                }
                             </td>
 
                             <td>
-                                RD$ @producto.Precio.ToString("N2")
+                                @if (producto.ControlaInventario)
+                                {
+                                    <span class="badge bg-primary">
+                                        Bien
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-info text-dark">
+                                        Servicio
+                                    </span>
+                                }
                             </td>
 
                             <td>
-                                @producto.TasaItbis.ToString("N2")%
+                                @producto.ClasificacionItbis
                             </td>
 
                             <td>
-                                <span class="@(producto.Existencia <= 5
-                                                                          ? "text-danger fw-semibold"
-                                                                          : string.Empty)">
+                                @producto.UnidadMedidaDescripcion
+                            </td>
 
-                            @producto.Existencia
+                            <td class="text-end">
+                                RD$ @producto.Precio.ToString("N4")
+                            </td>
+
+                            <td class="text-end">
+                                @if (producto.ControlaInventario)
+                                {
+                                    <span class="@(existenciaBaja
+                                                                                  ? "text-danger fw-bold"
+                                                                                  : "fw-semibold")">
+
+                            @producto.Existencia.ToString("N2")
                         </span>
-                    </td>
+                                                }
+                                else
+                                {
+                                    <span class="text-muted">
+                                        No aplica
+                                    </span>
+                                }
+                            </td>
 
                             <td>
-                                <span class="badge @(producto.Activo
-                                                                  ? "text-bg-success"
-                                                                  : "text-bg-secondary")">
+                                @if (producto.Activo)
+                                {
+                                    <span class="badge bg-success">
+                                        Activo
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">
+                                        Inactivo
+                                    </span>
+                                }
+                            </td>
 
-                            @(producto.Activo
-                                                        ? "Activo"
-                                                        : "Inactivo")
-                                                                 </span>
-                                                             </td>
+                            @if (esAdministrador)
+                            {
+                                <td class="text-end text-nowrap">
 
-                    <td class="text-end">
+                                    <a class="btn btn-sm btn-outline-primary"
+                                       asp-action="Editar"
+                                       asp-route-id="@producto.Id">
+                                        Editar
+                                    </a>
 
-                        <a class="btn btn-sm btn-outline-primary"
-                           asp-action="Editar"
-                           asp-route-id="@producto.Id">
-                            Editar
-                        </a>
+                                    @if (puedeCambiarEstado)
+                                    {
+                                        <form asp-action="CambiarEstado"
+                                              asp-route-id="@producto.Id"
+                                              method="post"
+                                              class="d-inline">
 
-                        <form asp-action="CambiarEstado"
-                              asp-route-id="@producto.Id"
-                              method="post"
-                              class="d-inline">
+                                            <button class="btn btn-sm btn-outline-secondary"
+                                                    type="submit">
 
-                            <button class="btn btn-sm btn-outline-secondary"
-                                    type="submit">
-
-                                @(producto.Activo
-                                                                ? "Desactivar"
-                                                                : "Activar")
+                                                @(producto.Activo
+                                                                                ? "Desactivar"
+                                                                                : "Activar")
                             </button>
 
-                                </form>
-                            </td>
+                                        </form>
+                                                }
+                                    else
+                                    {
+                                        <button class="btn btn-sm btn-outline-secondary"
+                                                type="button"
+                                                disabled
+                                                title="Debe llevar la existencia a cero antes de desactivar el producto">
+                                            Desactivar
+                                        </button>
+                                    }
+
+                                </td>
+                            }
                         </tr>
-                                }
+                    }
 
                 </tbody>
             </table>
+
         </div>
     }
+    else
+    {
+        <div class="empty-state border-0 shadow-none py-5">
+            <h2>No se encontraron productos o servicios</h2>
+
+            <p>
+                Cambia los criterios de búsqueda o registra
+                un nuevo elemento en el catálogo.
+            </p>
+
+            @if (esAdministrador)
+            {
+                <a class="btn btn-primary mt-3"
+                   asp-action="Crear">
+                    Registrar producto o servicio
+                </a>
+            }
+        </div>
+    }
+
 </div>
