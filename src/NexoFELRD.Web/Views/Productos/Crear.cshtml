@@ -1,4 +1,6 @@
-@model NexoFELRD.Web.Models.Producto
+@model NexoFELRD.Web.Models.ViewModels.ProductoCrearViewModel
+
+@using NexoFELRD.Web.Models
 
 @{
     ViewData["Title"] = "Nuevo producto";
@@ -6,17 +8,17 @@
 
 <div class="page-heading">
     <div>
-        <p class="eyebrow">PRODUCTOS</p>
-        <h1>Nuevo producto</h1>
+        <p class="eyebrow">PRODUCTOS Y SERVICIOS</p>
+
+        <h1>Nuevo producto o servicio</h1>
 
         <p class="text-muted">
-            Registra el precio, impuesto y existencia inicial.
+            Registra los datos fiscales, precio e inventario inicial.
         </p>
     </div>
 </div>
 
 <div class="content-card">
-
     <form asp-action="Crear" method="post">
 
         <div asp-validation-summary="ModelOnly"
@@ -26,8 +28,8 @@
         <div class="row g-3">
 
             <div class="col-md-4">
-                <label asp-for="Codigo" class="form-label">
-                    Código
+                <label asp-for="Codigo"
+                       class="form-label">
                 </label>
 
                 <input asp-for="Codigo"
@@ -40,45 +42,75 @@
             </div>
 
             <div class="col-md-8">
-                <label asp-for="Nombre" class="form-label"></label>
+                <label asp-for="Nombre"
+                       class="form-label">
+                </label>
 
                 <input asp-for="Nombre"
                        class="form-control"
-                       placeholder="Nombre del producto" />
+                       placeholder="Nombre del producto o servicio" />
 
                 <span asp-validation-for="Nombre"
                       class="text-danger">
                 </span>
             </div>
 
-            <div class="col-md-4">
-                <label asp-for="Precio" class="form-label"></label>
+            <div class="col-12">
+                <label asp-for="Descripcion"
+                       class="form-label">
+                </label>
 
-                <input asp-for="Precio"
-                       class="form-control"
-                       type="number"
-                       min="0"
-                       step="0.01" />
+                <textarea asp-for="Descripcion"
+                          class="form-control"
+                          rows="3"
+                          placeholder="Descripción adicional opcional">
+                </textarea>
 
-                <span asp-validation-for="Precio"
+                <span asp-validation-for="Descripcion"
                       class="text-danger">
                 </span>
             </div>
 
             <div class="col-md-4">
+                <label asp-for="Precio"
+                       class="form-label">
+                </label>
+
+                <div class="input-group">
+                    <span class="input-group-text">RD$</span>
+
+                    <input asp-for="Precio"
+                           class="form-control"
+                           type="number"
+                           min="0"
+                           step="0.0001"
+                           inputmode="decimal" />
+                </div>
+
+                <span asp-validation-for="Precio"
+                      class="text-danger">
+                </span>
+
+                <small class="text-muted">
+                    Admite un máximo de cuatro decimales.
+                </small>
+            </div>
+
+            <div class="col-md-4">
                 <label asp-for="IndicadorFacturacion"
                        class="form-label">
-                    Indicador de facturación DGII
                 </label>
 
                 <select asp-for="IndicadorFacturacion"
                         class="form-select">
 
-                    <option value="1">ITBIS 18%</option>
-                    <option value="2">ITBIS 16%</option>
-                    <option value="3">ITBIS 0%</option>
-                    <option value="4">Exento</option>
-                    <option value="0">No facturable</option>
+                    @foreach (var indicador in
+                                        CatalogosDgii.IndicadoresFacturacion)
+                    {
+                        <option value="@indicador.Key">
+                            @indicador.Key - @indicador.Value
+                        </option>
+                    }
 
                 </select>
 
@@ -88,20 +120,90 @@
             </div>
 
             <div class="col-md-4">
-                <label asp-for="Existencia"
+                <label asp-for="IndicadorBienOServicio"
                        class="form-label">
                 </label>
 
-                <input asp-for="Existencia"
-                       class="form-control"
-                       type="number"
-                       min="0" />
+                <select asp-for="IndicadorBienOServicio"
+                        class="form-select">
 
-                <span asp-validation-for="Existencia"
+                    <option value="@((int)TipoItemDgii.Bien)">
+                        1 - Bien
+                    </option>
+
+                    <option value="@((int)TipoItemDgii.Servicio)">
+                        2 - Servicio
+                    </option>
+
+                </select>
+
+                <span asp-validation-for="IndicadorBienOServicio"
                       class="text-danger">
                 </span>
             </div>
 
+            <div class="col-md-6">
+                <label asp-for="UnidadMedidaCodigo"
+                       class="form-label">
+                </label>
+
+                <select asp-for="UnidadMedidaCodigo"
+                        class="form-select">
+
+                    <option value="">
+                        Sin especificar
+                    </option>
+
+                    @foreach (var unidad in
+                                        CatalogosDgii.UnidadesMedida)
+                    {
+                        <option value="@unidad.Key">
+                            @unidad.Key - @unidad.Value
+                        </option>
+                    }
+
+                </select>
+
+                <span asp-validation-for="UnidadMedidaCodigo"
+                      class="text-danger">
+                </span>
+
+                <small id="ayudaUnidad"
+                       class="text-muted">
+                    Obligatoria para los bienes controlados
+                    en inventario.
+                </small>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="ExistenciaInicial"
+                       class="form-label">
+                </label>
+
+                <input asp-for="ExistenciaInicial"
+                       class="form-control"
+                       type="number"
+                       min="0"
+                       step="0.01"
+                       inputmode="decimal" />
+
+                <span asp-validation-for="ExistenciaInicial"
+                      class="text-danger">
+                </span>
+
+                <small id="ayudaExistencia"
+                       class="text-muted">
+                    Si es mayor que cero, se generará un movimiento
+                    de inventario inicial.
+                </small>
+            </div>
+
+        </div>
+
+        <div class="alert alert-info mt-4 mb-0">
+            Después de guardar el producto, su existencia solamente
+            podrá modificarse desde el módulo de Inventario o mediante
+            una operación de facturación.
         </div>
 
         <div class="d-flex gap-2 mt-4">
@@ -120,3 +222,61 @@
 
     </form>
 </div>
+
+@section Scripts {
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js">
+    </script>
+
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js">
+    </script>
+
+    <script>
+        const tipoItem =
+            document.getElementById("IndicadorBienOServicio");
+
+        const unidadMedida =
+            document.getElementById("UnidadMedidaCodigo");
+
+        const existenciaInicial =
+            document.getElementById("ExistenciaInicial");
+
+        const ayudaUnidad =
+            document.getElementById("ayudaUnidad");
+
+        const ayudaExistencia =
+            document.getElementById("ayudaExistencia");
+
+        function actualizarTipoItem() {
+            const esServicio =
+                tipoItem.value ===
+                "@((int)TipoItemDgii.Servicio)";
+
+            existenciaInicial.disabled = esServicio;
+            unidadMedida.required = !esServicio;
+
+            if (esServicio) {
+                existenciaInicial.value = "0";
+
+                ayudaUnidad.textContent =
+                    "La unidad de medida es opcional para los servicios.";
+
+                ayudaExistencia.textContent =
+                    "Los servicios no controlan existencia.";
+            } else {
+                ayudaUnidad.textContent =
+                    "Obligatoria para los bienes controlados " +
+                    "en inventario.";
+
+                ayudaExistencia.textContent =
+                    "Si es mayor que cero, se generará un movimiento " +
+                    "de inventario inicial.";
+            }
+        }
+
+        tipoItem.addEventListener(
+            "change",
+            actualizarTipoItem);
+
+        actualizarTipoItem();
+    </script>
+}

@@ -1,0 +1,798 @@
+@model NexoFELRD.Web.Models.ViewModels.NotaDebitoCrearViewModel
+@using NexoFELRD.Web.Models
+@using System.Text.Json
+
+@{
+    ViewData["Title"] = "Nueva nota de débito";
+
+    var tipoComprobante =
+        Model.FacturaAfectada?.TipoComprobante switch
+        {
+            TipoComprobante.CreditoFiscal =>
+                "E31 - Crédito fiscal",
+
+            TipoComprobante.Consumo =>
+                "E32 - Consumo",
+
+            _ => "Comprobante electrónico"
+        };
+
+    var lineasJson = JsonSerializer.Serialize(
+        Model.LineasDisponibles.Select(linea => new
+        {
+            id = linea.FacturaDetalleId,
+            numeroLinea = linea.NumeroLinea,
+            codigo = linea.CodigoProducto,
+            nombre = linea.NombreItem,
+            tipo = (int)linea.IndicadorBienOServicio,
+            indicadorFacturacion =
+                linea.IndicadorFacturacion,
+            tasaItbis = linea.TasaItbis,
+            unidad = linea.UnidadMedida
+        }));
+
+    var detallesJson = JsonSerializer.Serialize(
+        Model.Detalles.Select(detalle => new
+        {
+            facturaDetalleAfectadoId =
+                detalle.FacturaDetalleAfectadoId,
+
+            concepto = detalle.Concepto,
+            montoBase = detalle.MontoBase
+        }));
+}
+
+<div class="page-heading">
+    <div>
+        <p class="eyebrow">
+            FACTURACIÓN ELECTRÓNICA
+        </p>
+
+        <h1>Nueva nota de débito</h1>
+
+        <p class="text-muted">
+            Emite una E33 para agregar costos o gastos
+            posteriores al comprobante seleccionado.
+        </p>
+    </div>
+
+    <a class="btn btn-outline-secondary"
+       asp-action="Detalle"
+       asp-route-id="@Model.FacturaAfectadaId">
+        Volver a la factura
+    </a>
+</div>
+
+@if (Model.FacturaAfectada is not null)
+{
+    <div class="content-card mb-4">
+        <h2 class="h5 mb-4">
+            Comprobante afectado
+        </h2>
+
+        <div class="row g-4">
+
+            <div class="col-md-3">
+                <div class="text-muted">
+                    Número interno
+                </div>
+
+                <div class="fw-semibold">
+                    @Model.FacturaAfectada.NumeroInterno
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="text-muted">
+                    e-NCF
+                </div>
+
+                <div class="fw-semibold">
+                    @Model.FacturaAfectada.ENCF
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="text-muted">
+                    Tipo
+                </div>
+
+                <div class="fw-semibold">
+                    @tipoComprobante
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="text-muted">
+                    Fecha de emisión
+                </div>
+
+                <div class="fw-semibold">
+                    @(Model.FacturaAfectada.FechaEmision
+                                    .ToString("dd/MM/yyyy"))
+            </div>
+        </div>
+
+            <div class="col-md-6">
+                <div class="text-muted">
+                    Comprador
+                </div>
+
+                <div class="fw-semibold">
+                    @Model.FacturaAfectada.Comprador
+                </div>
+
+                <small class="text-muted">
+                    @Model.FacturaAfectada.IdentificacionFiscal
+                </small>
+            </div>
+
+            <div class="col-md-3">
+                <div class="text-muted">
+                    Total original
+                </div>
+
+                <div class="fw-semibold">
+                    RD$ @(Model.FacturaAfectada.TotalOriginal
+                                .ToString("N2"))
+            </div>
+        </div>
+
+        </div>
+    </div>
+}
+
+<form asp-action="CrearNotaDebito"
+      method="post"
+      id="formNotaDebito">
+
+    <input asp-for="FacturaAfectadaId"
+           type="hidden" />
+
+    <div class="content-card">
+
+        <h2 class="h5 mb-4">
+            Información de la nota
+        </h2>
+
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div asp-validation-summary="All"
+                 class="alert alert-danger">
+            </div>
+        }
+
+        <div class="row g-3 mb-4">
+
+            <div class="col-md-4">
+                <label asp-for="FechaEmision"
+                       class="form-label">
+                </label>
+
+                <input asp-for="FechaEmision"
+                       class="form-control" />
+
+                <span asp-validation-for="FechaEmision"
+                      class="text-danger">
+                </span>
+            </div>
+
+            <div class="col-md-8">
+                <label class="form-label">
+                    Código de modificación
+                </label>
+
+                <input class="form-control"
+                       value="3 - Corrección de montos"
+                       readonly />
+
+                <small class="text-muted">
+                    La E33 aumenta el monto del comprobante
+                    original.
+                </small>
+            </div>
+
+            <div class="col-12">
+                <label asp-for="RazonModificacion"
+                       class="form-label">
+                </label>
+
+                <textarea asp-for="RazonModificacion"
+                          class="form-control"
+                          rows="3"
+                          maxlength="90"
+                          placeholder="Ejemplo: Cargo adicional por transporte posterior a la venta."></textarea>
+
+                <span asp-validation-for="RazonModificacion"
+                      class="text-danger">
+                </span>
+
+                <small class="text-muted">
+                    Máximo 90 caracteres.
+                </small>
+            </div>
+
+        </div>
+
+        <hr />
+
+        <h2 class="h5 mt-4 mb-3">
+            Cargos adicionales
+        </h2>
+
+        <div class="alert alert-info">
+            Selecciona la línea original relacionada e indica
+            el concepto y el monto adicional antes de ITBIS.
+            Esta operación no modifica el inventario.
+        </div>
+
+        <div id="mensajeDetalle"
+             class="alert alert-danger d-none">
+        </div>
+
+        <div class="row g-3 align-items-end mb-4">
+
+            <div class="col-lg-4">
+                <label for="lineaSeleccionada"
+                       class="form-label">
+                    Línea relacionada
+                </label>
+
+                <select id="lineaSeleccionada"
+                        class="form-select">
+
+                    <option value="">
+                        Seleccione una línea
+                    </option>
+
+                    @foreach (var linea in
+                                        Model.LineasDisponibles)
+                    {
+                        <option value="@linea.FacturaDetalleId">
+                            Línea @linea.NumeroLinea -
+                            @linea.CodigoProducto -
+                            @linea.NombreItem
+                        </option>
+                    }
+
+                </select>
+            </div>
+
+            <div class="col-lg-4">
+                <label for="conceptoCargo"
+                       class="form-label">
+                    Concepto del cargo
+                </label>
+
+                <input id="conceptoCargo"
+                       class="form-control"
+                       maxlength="80"
+                       placeholder="Ejemplo: Flete adicional" />
+            </div>
+
+            <div class="col-lg-2">
+                <label for="montoCargo"
+                       class="form-label">
+                    Monto base
+                </label>
+
+                <input id="montoCargo"
+                       class="form-control"
+                       type="number"
+                       min="0.01"
+                       step="0.01"
+                       placeholder="0.00" />
+            </div>
+
+            <div class="col-lg-2">
+                <button type="button"
+                        id="agregarCargo"
+                        class="btn btn-outline-primary w-100">
+                    Agregar cargo
+                </button>
+            </div>
+
+        </div>
+
+        <span asp-validation-for="Detalles"
+              class="text-danger">
+        </span>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+
+                <thead>
+                    <tr>
+                        <th>Línea relacionada</th>
+                        <th>Concepto</th>
+                        <th class="text-end">
+                            Base
+                        </th>
+                        <th class="text-end">
+                            ITBIS
+                        </th>
+                        <th class="text-end">
+                            Total línea
+                        </th>
+                        <th class="text-end">
+                            Acción
+                        </th>
+                    </tr>
+                </thead>
+
+                <tbody id="cuerpoDetalles">
+                </tbody>
+
+            </table>
+        </div>
+
+        <div class="row justify-content-end mt-4">
+            <div class="col-lg-5">
+
+                <div class="border rounded p-4">
+
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>
+                            Base facturable adicional:
+                        </span>
+
+                        <strong id="resumenBase">
+                            RD$ 0.00
+                        </strong>
+                    </div>
+
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>
+                            ITBIS:
+                        </span>
+
+                        <strong id="resumenItbis">
+                            RD$ 0.00
+                        </strong>
+                    </div>
+
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>
+                            Monto no facturable:
+                        </span>
+
+                        <strong id="resumenNoFacturable">
+                            RD$ 0.00
+                        </strong>
+                    </div>
+
+                    <hr />
+
+                    <div class="d-flex justify-content-between h5">
+                        <span>
+                            Total de la nota:
+                        </span>
+
+                        <strong id="resumenTotal"
+                                class="text-primary">
+                            RD$ 0.00
+                        </strong>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <span>
+                            Monto período:
+                        </span>
+
+                        <strong id="resumenPeriodo">
+                            RD$ 0.00
+                        </strong>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="alert alert-warning mt-4">
+            Al confirmar se consumirá una secuencia E33.
+            La nota de débito no genera entradas ni salidas
+            de inventario.
+        </div>
+
+        <div class="d-flex gap-2 flex-wrap">
+            <button type="submit"
+                    class="btn btn-primary">
+                Confirmar nota de débito
+            </button>
+
+            <a class="btn btn-outline-secondary"
+               asp-action="Detalle"
+               asp-route-id="@Model.FacturaAfectadaId">
+                Cancelar
+            </a>
+        </div>
+
+    </div>
+</form>
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        (() => {
+            const lineas = @Html.Raw(lineasJson);
+            let detalles = @Html.Raw(detallesJson);
+
+            const formulario =
+                document.getElementById(
+                    "formNotaDebito");
+
+            const selectorLinea =
+                document.getElementById(
+                    "lineaSeleccionada");
+
+            const conceptoInput =
+                document.getElementById(
+                    "conceptoCargo");
+
+            const montoInput =
+                document.getElementById(
+                    "montoCargo");
+
+            const cuerpo =
+                document.getElementById(
+                    "cuerpoDetalles");
+
+            const mensaje =
+                document.getElementById(
+                    "mensajeDetalle");
+
+            function redondear(valor) {
+                return Math.round(
+                    (Number(valor) +
+                        Number.EPSILON) * 100
+                ) / 100;
+            }
+
+            function formatearMoneda(valor) {
+                return "RD$ " +
+                    Number(valor).toLocaleString(
+                        "es-DO",
+                        {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                        });
+            }
+
+            function escaparHtml(valor) {
+                return String(valor ?? "")
+                    .replaceAll("&", "&amp;")
+                    .replaceAll("<", "&lt;")
+                    .replaceAll(">", "&gt;")
+                    .replaceAll("\"", "&quot;")
+                    .replaceAll("'", "&#039;");
+            }
+
+            function obtenerLinea(id) {
+                return lineas.find(
+                    linea =>
+                        Number(linea.id) ===
+                        Number(id));
+            }
+
+            function calcularItbis(
+                detalle,
+                linea) {
+
+                const indicador =
+                    Number(
+                        linea.indicadorFacturacion);
+
+                if (indicador !== 1 &&
+                    indicador !== 2) {
+                    return 0;
+                }
+
+                return redondear(
+                    Number(detalle.montoBase) *
+                    Number(linea.tasaItbis) /
+                    100);
+            }
+
+            function mostrarError(texto) {
+                mensaje.textContent = texto;
+
+                mensaje.classList.remove(
+                    "d-none");
+            }
+
+            function ocultarError() {
+                mensaje.textContent = "";
+
+                mensaje.classList.add(
+                    "d-none");
+            }
+
+            function actualizarResumen() {
+                let baseFacturable = 0;
+                let itbis = 0;
+                let noFacturable = 0;
+
+                detalles.forEach(detalle => {
+                    const linea =
+                        obtenerLinea(
+                            detalle
+                                .facturaDetalleAfectadoId);
+
+                    if (!linea) {
+                        return;
+                    }
+
+                    const base =
+                        Number(
+                            detalle.montoBase);
+
+                    if (Number(
+                        linea
+                            .indicadorFacturacion) === 0) {
+
+                        noFacturable += base;
+                    }
+                    else {
+                        baseFacturable += base;
+                    }
+
+                    itbis += calcularItbis(
+                        detalle,
+                        linea);
+                });
+
+                baseFacturable =
+                    redondear(baseFacturable);
+
+                itbis =
+                    redondear(itbis);
+
+                noFacturable =
+                    redondear(noFacturable);
+
+                const total =
+                    redondear(
+                        baseFacturable +
+                        itbis);
+
+                const montoPeriodo =
+                    redondear(
+                        total +
+                        noFacturable);
+
+                document.getElementById(
+                    "resumenBase"
+                ).textContent =
+                    formatearMoneda(
+                        baseFacturable);
+
+                document.getElementById(
+                    "resumenItbis"
+                ).textContent =
+                    formatearMoneda(itbis);
+
+                document.getElementById(
+                    "resumenNoFacturable"
+                ).textContent =
+                    formatearMoneda(
+                        noFacturable);
+
+                document.getElementById(
+                    "resumenTotal"
+                ).textContent =
+                    formatearMoneda(total);
+
+                document.getElementById(
+                    "resumenPeriodo"
+                ).textContent =
+                    formatearMoneda(
+                        montoPeriodo);
+            }
+
+            function renderizarDetalles() {
+                cuerpo.innerHTML = "";
+
+                if (detalles.length === 0) {
+                    cuerpo.innerHTML = `
+                        <tr>
+                            <td colspan="6"
+                                class="text-center text-muted py-4">
+                                Todavía no se han agregado cargos.
+                            </td>
+                        </tr>`;
+
+                    actualizarResumen();
+                    return;
+                }
+
+                detalles.forEach(
+                    (detalle, indice) => {
+
+                    const linea =
+                        obtenerLinea(
+                            detalle
+                                .facturaDetalleAfectadoId);
+
+                    if (!linea) {
+                        return;
+                    }
+
+                    const base =
+                        Number(
+                            detalle.montoBase);
+
+                    const itbis =
+                        calcularItbis(
+                            detalle,
+                            linea);
+
+                    const total =
+                        redondear(
+                            base + itbis);
+
+                    const fila =
+                        document.createElement(
+                            "tr");
+
+                    fila.innerHTML = `
+                        <td>
+                            <div class="fw-semibold">
+                                Línea ${linea.numeroLinea}
+                            </div>
+
+                            <small class="text-muted">
+                                ${escaparHtml(linea.codigo)} -
+                                ${escaparHtml(linea.nombre)}
+                            </small>
+
+                            <input type="hidden"
+                                   name="Detalles[${indice}].FacturaDetalleAfectadoId"
+                                   value="${linea.id}" />
+                        </td>
+
+                        <td>
+                            ${escaparHtml(detalle.concepto)}
+
+                            <input type="hidden"
+                                   name="Detalles[${indice}].Concepto"
+                                   value="${escaparHtml(detalle.concepto)}" />
+                        </td>
+
+                        <td class="text-end">
+                            ${formatearMoneda(base)}
+
+                            <input type="hidden"
+                                   name="Detalles[${indice}].MontoBase"
+                                   value="${base.toFixed(2)}" />
+                        </td>
+
+                        <td class="text-end">
+                            ${formatearMoneda(itbis)}
+                        </td>
+
+                        <td class="text-end fw-semibold">
+                            ${formatearMoneda(total)}
+                        </td>
+
+                        <td class="text-end">
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-danger"
+                                    data-eliminar="${indice}">
+                                Eliminar
+                            </button>
+                        </td>`;
+
+                    cuerpo.appendChild(fila);
+                });
+
+                actualizarResumen();
+            }
+
+            document.getElementById(
+                "agregarCargo"
+            ).addEventListener(
+                "click",
+                () => {
+
+                ocultarError();
+
+                const lineaId =
+                    Number(
+                        selectorLinea.value);
+
+                const concepto =
+                    conceptoInput.value.trim();
+
+                const monto =
+                    Number(
+                        montoInput.value
+                            .replace(",", "."));
+
+                if (!lineaId ||
+                    !obtenerLinea(lineaId)) {
+
+                    mostrarError(
+                        "Selecciona una línea del comprobante original.");
+
+                    return;
+                }
+
+                if (concepto.length < 3 ||
+                    concepto.length > 80) {
+
+                    mostrarError(
+                        "El concepto debe contener entre 3 y 80 caracteres.");
+
+                    return;
+                }
+
+                if (!Number.isFinite(monto) ||
+                    monto <= 0) {
+
+                    mostrarError(
+                        "El monto adicional debe ser mayor que cero.");
+
+                    return;
+                }
+
+                detalles.push({
+                    facturaDetalleAfectadoId:
+                        lineaId,
+
+                    concepto:
+                        concepto,
+
+                    montoBase:
+                        redondear(monto)
+                });
+
+                selectorLinea.value = "";
+                conceptoInput.value = "";
+                montoInput.value = "";
+
+                renderizarDetalles();
+            });
+
+            cuerpo.addEventListener(
+                "click",
+                evento => {
+
+                const boton =
+                    evento.target.closest(
+                        "[data-eliminar]");
+
+                if (!boton) {
+                    return;
+                }
+
+                const indice =
+                    Number(
+                        boton.dataset.eliminar);
+
+                detalles.splice(
+                    indice,
+                    1);
+
+                renderizarDetalles();
+            });
+
+            formulario.addEventListener(
+                "submit",
+                evento => {
+
+                ocultarError();
+
+                if (detalles.length === 0) {
+                    evento.preventDefault();
+
+                    mostrarError(
+                        "Agrega al menos un cargo a la nota de débito.");
+                }
+            });
+
+            renderizarDetalles();
+        })();
+    </script>
+}

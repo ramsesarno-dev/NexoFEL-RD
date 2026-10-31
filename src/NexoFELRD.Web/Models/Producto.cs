@@ -7,38 +7,105 @@ public class Producto
 {
     public int Id { get; set; }
 
-    [Required, StringLength(30)]
+    [Required(ErrorMessage = "El código es obligatorio.")]
+    [StringLength(
+        30,
+        ErrorMessage = "El código no puede exceder 30 caracteres.")]
+    [Display(Name = "Código")]
     public string Codigo { get; set; } = string.Empty;
 
-    [Required, StringLength(150)]
+    [Required(
+        ErrorMessage =
+            "El nombre del producto o servicio es obligatorio.")]
+    [StringLength(
+        80,
+        ErrorMessage =
+            "El nombre no puede exceder 80 caracteres.")]
+    [Display(Name = "Nombre")]
     public string Nombre { get; set; } = string.Empty;
 
-    [Range(0, 999999999)]
+    [StringLength(
+        1000,
+        ErrorMessage =
+            "La descripción no puede exceder 1,000 caracteres.")]
+    [Display(Name = "Descripción")]
+    public string? Descripcion { get; set; }
+
+    [Range(
+        typeof(decimal),
+        "0",
+        "9999999999999999.9999",
+        ErrorMessage = "El precio no puede ser negativo.")]
+    [Display(Name = "Precio")]
     public decimal Precio { get; set; }
 
-    [Range(0, 100)]
-    public decimal TasaItbis { get; set; } = 18;
+    [Range(
+        typeof(decimal),
+        "0",
+        "100",
+        ErrorMessage = "La tasa de ITBIS no es válida.")]
+    [Display(Name = "Tasa de ITBIS")]
+    public decimal TasaItbis { get; set; } = 18m;
 
-    [Range(0, 4)]
+    [Range(
+        0,
+        4,
+        ErrorMessage =
+            "El indicador de facturación debe estar entre 0 y 4.")]
+    [Display(Name = "Indicador de facturación DGII")]
     public byte IndicadorFacturacion { get; set; } = 1;
 
-    [NotMapped]
-    public string ClasificacionItbis =>
-        IndicadorFacturacion switch
-        {
-            0 => "No facturable",
-            1 => "ITBIS 18%",
-            2 => "ITBIS 16%",
-            3 => "ITBIS 0%",
-            4 => "Exento",
-            _ => "Sin clasificación"
-        };
+    [EnumDataType(
+        typeof(TipoItemDgii),
+        ErrorMessage =
+            "La clasificación como bien o servicio no es válida.")]
+    [Display(Name = "Tipo de ítem")]
+    public TipoItemDgii IndicadorBienOServicio { get; set; }
+        = TipoItemDgii.Bien;
 
-    [Range(0, int.MaxValue)]
-    public int Existencia { get; set; }
+    [Range(
+        typeof(byte),
+        "1",
+        "62",
+        ErrorMessage =
+            "La unidad de medida debe corresponder al catálogo DGII.")]
+    [Display(Name = "Unidad de medida")]
+    public byte? UnidadMedidaCodigo { get; set; } = 43;
+
+    [Range(
+        typeof(decimal),
+        "0",
+        "9999999999999999.99",
+        ErrorMessage = "La existencia no puede ser negativa.")]
+    [Display(Name = "Existencia actual")]
+    public decimal Existencia { get; set; }
 
     public bool Activo { get; set; } = true;
 
-    public ICollection<FacturaDetalle> DetallesFactura { get; set; } = new List<FacturaDetalle>();
-    public ICollection<MovimientoInventario> Movimientos { get; set; } = new List<MovimientoInventario>();
+    [NotMapped]
+    public bool ControlaInventario =>
+        IndicadorBienOServicio == TipoItemDgii.Bien;
+
+    [NotMapped]
+    public string ClasificacionItbis =>
+        CatalogosDgii.IndicadoresFacturacion.TryGetValue(
+            IndicadorFacturacion,
+            out var descripcion)
+                ? descripcion
+                : "Clasificación inválida";
+
+    [NotMapped]
+    public string UnidadMedidaDescripcion =>
+        UnidadMedidaCodigo.HasValue &&
+        CatalogosDgii.UnidadesMedida.TryGetValue(
+            UnidadMedidaCodigo.Value,
+            out var descripcion)
+                ? $"{UnidadMedidaCodigo.Value} - {descripcion}"
+                : "No especificada";
+
+    public ICollection<FacturaDetalle> DetallesFactura { get; set; }
+        = new List<FacturaDetalle>();
+
+    public ICollection<MovimientoInventario> Movimientos { get; set; }
+        = new List<MovimientoInventario>();
 }

@@ -6,11 +6,18 @@
 }
 
 <div class="page-heading">
+
     <div>
-        <p class="eyebrow">OPERACIONES</p>
-        <h1>Facturas</h1>
+        <p class="eyebrow">
+            OPERACIONES
+        </p>
+
+        <h1>
+            Facturas
+        </h1>
+
         <p class="text-muted">
-            Emisión y consulta de ventas.
+            Emisión y consulta de comprobantes electrónicos.
         </p>
     </div>
 
@@ -18,18 +25,22 @@
        asp-action="Crear">
         Nueva factura
     </a>
+
 </div>
 
 @if (TempData["Exito"] is string mensaje)
 {
     <div class="alert alert-success alert-dismissible fade show"
          role="alert">
+
         @mensaje
 
         <button type="button"
                 class="btn-close"
-                data-bs-dismiss="alert">
+                data-bs-dismiss="alert"
+                aria-label="Cerrar">
         </button>
+
     </div>
 }
 
@@ -39,13 +50,16 @@
           class="row g-2 mb-4">
 
         <div class="col-md-7">
+
             <input class="form-control"
                    name="buscar"
                    value="@ViewData["Buscar"]"
-                   placeholder="Buscar por número, cliente, RNC o cédula" />
+                   placeholder="Buscar por número, e-NCF, comprador, RNC o cédula" />
+
         </div>
 
         <div class="col-auto">
+
             <button class="btn btn-outline-primary"
                     type="submit">
                 Buscar
@@ -55,6 +69,7 @@
                asp-action="Index">
                 Limpiar
             </a>
+
         </div>
 
     </form>
@@ -62,89 +77,349 @@
     @if (!Model.Any())
     {
         <div class="text-center py-5">
+
             <h2 class="h5">
-                No hay facturas registradas
+                No hay comprobantes registrados
             </h2>
 
-            <p class="text-muted mb-0">
+            <p class="text-muted mb-3">
                 Registra la primera factura para comenzar.
             </p>
+
+            <a class="btn btn-primary"
+               asp-action="Crear">
+                Registrar factura
+            </a>
+
         </div>
     }
     else
     {
         <div class="table-responsive">
+
             <table class="table table-hover align-middle mb-0">
 
                 <thead>
                     <tr>
                         <th>Número</th>
                         <th>Fecha</th>
-                        <th>Cliente</th>
+                        <th>Comprador</th>
                         <th>Comprobante</th>
-                        <th>Subtotal</th>
-                        <th>ITBIS</th>
-                        <th>Total</th>
+                        <th class="text-end">Subtotal</th>
+                        <th class="text-end">ITBIS</th>
+                        <th class="text-end">Total</th>
                         <th>Estado</th>
+                        <th class="text-end">Acciones</th>
                     </tr>
                 </thead>
 
                 <tbody>
+
                     @foreach (var factura in Model)
                     {
+                        var razonSocial =
+                            factura.RazonSocialComprador ??
+                            factura.Cliente?.Nombre ??
+                            "Consumidor final";
+
+                        var identificacion =
+                            factura.RncComprador ??
+                            factura.IdentificadorExtranjero ??
+                            factura.Cliente?.IdentificacionFiscal;
+
+                        var esNotaDebito =
+                            factura.TipoComprobante ==
+                            TipoComprobante.NotaDebito;
+
+                        var esNotaCredito =
+                            factura.TipoComprobante ==
+                            TipoComprobante.NotaCredito;
+
+                        var esNotaFiscal =
+                            esNotaDebito ||
+                            esNotaCredito;
+
+                        var comprobante =
+                            factura.TipoComprobante switch
+                            {
+                                TipoComprobante.CreditoFiscal =>
+                                    "E31 - Crédito fiscal",
+
+                                TipoComprobante.Consumo =>
+                                    "E32 - Consumo",
+
+                                TipoComprobante.NotaDebito =>
+                                    "E33 - Nota de débito",
+
+                                TipoComprobante.NotaCredito =>
+                                    "E34 - Nota de crédito",
+
+                                TipoComprobante.Compras =>
+                                    "E41 - Compras",
+
+                                TipoComprobante.GastosMenores =>
+                                    "E43 - Gastos menores",
+
+                                TipoComprobante.RegimenesEspeciales =>
+                                    "E44 - Regímenes especiales",
+
+                                TipoComprobante.Gubernamental =>
+                                    "E45 - Gubernamental",
+
+                                TipoComprobante.Exportaciones =>
+                                    "E46 - Exportaciones",
+
+                                TipoComprobante.PagosExterior =>
+                                    "E47 - Pagos al exterior",
+
+                                _ =>
+                                    "Comprobante desconocido"
+                            };
+
+                        var comprobanteClase =
+                            factura.TipoComprobante switch
+                            {
+                                TipoComprobante.CreditoFiscal =>
+                                    "text-bg-primary",
+
+                                TipoComprobante.Consumo =>
+                                    "text-bg-info",
+
+                                TipoComprobante.NotaDebito =>
+                                    "text-bg-warning",
+
+                                TipoComprobante.NotaCredito =>
+                                    "text-bg-danger",
+
+                                _ =>
+                                    "text-bg-secondary"
+                            };
+
+                        var descripcionEfecto =
+                            factura.TipoComprobante switch
+                            {
+                                TipoComprobante.NotaDebito =>
+                                    "Aumenta el comprobante original",
+
+                                TipoComprobante.NotaCredito =>
+                                    "Disminuye el comprobante original",
+
+                                _ =>
+                                    string.Empty
+                            };
+
+                        var estadoTexto =
+                            factura.Estado switch
+                            {
+                                EstadoFactura.Borrador =>
+                                    "Borrador",
+
+                                EstadoFactura.Confirmada =>
+                                    "Confirmada",
+
+                                EstadoFactura.Generada =>
+                                    "Generada",
+
+                                EstadoFactura.Anulada =>
+                                    "Anulada",
+
+                                _ =>
+                                    "Desconocido"
+                            };
+
+                        var estadoClase =
+                            factura.Estado switch
+                            {
+                                EstadoFactura.Borrador =>
+                                    "text-bg-secondary",
+
+                                EstadoFactura.Confirmada =>
+                                    "text-bg-success",
+
+                                EstadoFactura.Generada =>
+                                    "text-bg-primary",
+
+                                EstadoFactura.Anulada =>
+                                    "text-bg-danger",
+
+                                _ =>
+                                    "text-bg-secondary"
+                            };
+
+                        var signoMonto =
+                            esNotaDebito
+                                ? "+ "
+                                : esNotaCredito
+                                    ? "- "
+                                    : string.Empty;
+
+                        var claseMonto =
+                            esNotaDebito
+                                ? "text-danger"
+                                : esNotaCredito
+                                    ? "text-success"
+                                    : string.Empty;
+
+                        var montoPeriodo =
+                            factura.Total +
+                            factura.MontoNoFacturable;
+
                         <tr>
-                            <td class="fw-semibold">
-                                @factura.NumeroInterno
-                            </td>
 
                             <td>
-                                @factura.FechaEmision.ToString("dd/MM/yyyy")
-                            </td>
 
-                            <td>
                                 <div class="fw-semibold">
-                                    @factura.Cliente.Nombre
+                                    @factura.NumeroInterno
                                 </div>
 
-                                <small class="text-muted">
-                                    @(factura.Cliente.IdentificacionFiscal ?? "Sin identificación")
-                                </small>
-                            </td>
-
-                            <td>
-                                @if (factura.TipoComprobante ==
-                                                        TipoComprobante.CreditoFiscal)
+                                @if (!string.IsNullOrWhiteSpace(
+                                    factura.ENCF))
                                 {
-                                    <span>E31 - Crédito fiscal</span>
+                                    <small class="text-muted">
+                                        @factura.ENCF
+                                    </small>
                                 }
                                 else
                                 {
-                                    <span>E32 - Consumo</span>
+                                    <small class="text-muted">
+                                        e-NCF pendiente
+                                    </small>
                                 }
+
                             </td>
 
                             <td>
-                                RD$ @factura.Subtotal.ToString("N2")
+                                @(factura.FechaEmision.ToString(
+                                    "dd/MM/yyyy"))
                             </td>
 
                             <td>
-                                RD$ @factura.Itbis.ToString("N2")
-                            </td>
 
-                            <td class="fw-bold">
-                                RD$ @factura.Total.ToString("N2")
+                                <div class="fw-semibold">
+                                    @razonSocial
+                                </div>
+
+                                <small class="text-muted">
+                                    @(string.IsNullOrWhiteSpace(
+                                        identificacion)
+                                        ? "Comprador no identificado"
+                                        : identificacion)
+                                </small>
+
                             </td>
 
                             <td>
-                                <span class="badge text-bg-success">
-                                    @factura.Estado
+
+                                <span class="badge @comprobanteClase">
+                                    @comprobante
                                 </span>
+
+                                @if (esNotaFiscal)
+                                {
+                                    <small class="d-block text-muted mt-1">
+                                        @descripcionEfecto
+                                    </small>
+
+                                    @if (factura.FacturaAfectadaId.HasValue)
+                                    {
+                                        <a class="small d-block mt-1"
+                                           asp-action="Detalle"
+                                           asp-route-id="@factura.FacturaAfectadaId.Value">
+
+                                            Original:
+                                            @(string.IsNullOrWhiteSpace(
+                                                factura.NCFModificado)
+                                                ? $"Factura #{factura.FacturaAfectadaId.Value}"
+                                                : factura.NCFModificado)
+
+                                        </a>
+                                    }
+                                    else if (!string.IsNullOrWhiteSpace(
+                                        factura.NCFModificado))
+                                    {
+                                        <small class="d-block mt-1">
+                                            Original:
+                                            @factura.NCFModificado
+                                        </small>
+                                    }
+                                }
+
                             </td>
+
+                            <td class="text-end @claseMonto">
+
+                                @($"{signoMonto}RD$ " +
+                                  $"{factura.Subtotal:N2}")
+
+                            </td>
+
+                            <td class="text-end @claseMonto">
+
+                                @($"{signoMonto}RD$ " +
+                                  $"{factura.Itbis:N2}")
+
+                            </td>
+
+                            <td class="text-end">
+
+                                <div class="fw-bold @claseMonto">
+
+                                    @($"{signoMonto}RD$ " +
+                                      $"{factura.Total:N2}")
+
+                                </div>
+
+                                @if (factura.MontoNoFacturable != 0)
+                                {
+                                    <small class="d-block text-muted">
+
+                                        No facturable:
+                                        <span class="@claseMonto">
+                                            @($"{signoMonto}RD$ " +
+                                              $"{factura.MontoNoFacturable:N2}")
+                                        </span>
+
+                                    </small>
+
+                                    <small class="d-block text-muted">
+
+                                        Monto período:
+                                        <span class="@claseMonto">
+                                            @($"{signoMonto}RD$ " +
+                                              $"{montoPeriodo:N2}")
+                                        </span>
+
+                                    </small>
+                                }
+
+                            </td>
+
+                            <td>
+
+                                <span class="badge @estadoClase">
+                                    @estadoTexto
+                                </span>
+
+                            </td>
+
+                            <td class="text-end">
+
+                                <a class="btn btn-sm btn-outline-primary"
+                                   asp-action="Detalle"
+                                   asp-route-id="@factura.Id">
+                                    Ver detalle
+                                </a>
+
+                            </td>
+
                         </tr>
                     }
+
                 </tbody>
 
             </table>
+
         </div>
     }
+
 </div>

@@ -1,72 +1,200 @@
 @model NexoFELRD.Web.Models.ViewModels.FacturaCrearViewModel
+@using NexoFELRD.Web.Models
+@using System.Globalization
+@using System.Text.Json
 
 @{
     ViewData["Title"] = "Nueva factura";
+
+    var detallesIniciales = Model.Detalles
+        .Where(x =>
+            x.ProductoId > 0 &&
+            x.Cantidad > 0)
+        .Select(x => new
+        {
+            productoId = x.ProductoId,
+            cantidad = x.Cantidad
+        })
+        .ToList();
+
+    var detallesInicialesJson =
+        JsonSerializer.Serialize(detallesIniciales);
 }
 
 <div class="page-heading">
     <div>
-        <p class="eyebrow">FACTURACIÓN</p>
+        <p class="eyebrow">FACTURACIÓN ELECTRÓNICA</p>
         <h1>Nueva factura</h1>
+
         <p class="text-muted">
-            Selecciona el cliente y agrega los productos de la venta.
+            Registra los datos fiscales y agrega los bienes
+            o servicios de la operación.
         </p>
     </div>
 </div>
 
 <div class="content-card">
-    <form asp-action="Crear" method="post" id="formFactura">
+    <form asp-action="Crear"
+          method="post"
+          id="formFactura">
+
         <div asp-validation-summary="ModelOnly"
-             class="text-danger mb-3">
+             class="alert alert-danger mb-3">
         </div>
+
+        <h2 class="h5 mb-3">Encabezado fiscal</h2>
 
         <div class="row g-3">
             <div class="col-md-6">
-                <label asp-for="ClienteId" class="form-label">
-                    Cliente
+                <label asp-for="ClienteId"
+                       class="form-label">
+                    Comprador
                 </label>
 
                 <select asp-for="ClienteId"
                         asp-items="Model.Clientes"
                         class="form-select">
-                    <option value="">Seleccione un cliente</option>
+                    <option value="">
+                        Consumidor no identificado
+                    </option>
                 </select>
 
                 <span asp-validation-for="ClienteId"
                       class="text-danger">
                 </span>
+
+                <small id="ayudaCliente"
+                       class="form-text text-muted">
+                </small>
             </div>
 
             <div class="col-md-3">
-                <label asp-for="TipoComprobante" class="form-label">
+                <label asp-for="TipoComprobante"
+                       class="form-label">
                     Tipo de comprobante
                 </label>
 
                 <select asp-for="TipoComprobante"
                         class="form-select">
                     <option value="32">
-                        Factura de consumo electrónica (32)
+                        E32 - Factura de consumo
                     </option>
+
                     <option value="31">
-                        Factura de crédito fiscal electrónica (31)
+                        E31 - Crédito fiscal
                     </option>
                 </select>
 
                 <span asp-validation-for="TipoComprobante"
                       class="text-danger">
                 </span>
+
+                <small class="form-text text-muted">
+                    Los E33–E47 tendrán sus flujos especializados.
+                </small>
             </div>
 
             <div class="col-md-3">
-                <label asp-for="FechaEmision" class="form-label">
+                <label asp-for="FechaEmision"
+                       class="form-label">
                     Fecha de emisión
                 </label>
 
                 <input asp-for="FechaEmision"
                        class="form-control"
-                       type="date" />
+                       type="date"
+                       max="@DateTime.Today.ToString("yyyy-MM-dd")" />
 
                 <span asp-validation-for="FechaEmision"
+                      class="text-danger">
+                </span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="TipoPago"
+                       class="form-label">
+                    Condición de pago
+                </label>
+
+                <select asp-for="TipoPago"
+                        class="form-select">
+                    <option value="1">Contado</option>
+                    <option value="2">Crédito</option>
+                    <option value="3">Gratuito</option>
+                </select>
+
+                <span asp-validation-for="TipoPago"
+                      class="text-danger">
+                </span>
+            </div>
+
+            <div id="contenedorFechaLimite"
+                 class="col-md-3 d-none">
+
+                <label asp-for="FechaLimitePago"
+                       class="form-label">
+                    Fecha límite de pago
+                </label>
+
+                <input asp-for="FechaLimitePago"
+                       class="form-control"
+                       type="date" />
+
+                <span asp-validation-for="FechaLimitePago"
+                      class="text-danger">
+                </span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="TipoIngreso"
+                       class="form-label">
+                    Tipo de ingreso
+                </label>
+
+                <select asp-for="TipoIngreso"
+                        class="form-select">
+                    <option value="1">
+                        Operaciones no financieras
+                    </option>
+                    <option value="2">
+                        Ingresos financieros
+                    </option>
+                    <option value="3">
+                        Ingresos extraordinarios
+                    </option>
+                    <option value="4">
+                        Arrendamientos
+                    </option>
+                    <option value="5">
+                        Venta de activo depreciable
+                    </option>
+                    <option value="6">
+                        Otros ingresos
+                    </option>
+                </select>
+
+                <span asp-validation-for="TipoIngreso"
+                      class="text-danger">
+                </span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="IndicadorMontoGravado"
+                       class="form-label">
+                    Tratamiento del precio
+                </label>
+
+                <select asp-for="IndicadorMontoGravado"
+                        class="form-select">
+                    <option value="0">
+                        Precio sin ITBIS incluido
+                    </option>
+                    <option value="1">
+                        Precio con ITBIS incluido
+                    </option>
+                </select>
+
+                <span asp-validation-for="IndicadorMontoGravado"
                       class="text-danger">
                 </span>
             </div>
@@ -74,41 +202,77 @@
 
         <hr class="my-4" />
 
-        <h2 class="h5 mb-3">Detalle de productos</h2>
+        <h2 class="h5 mb-3">
+            Detalle de bienes y servicios
+        </h2>
 
         <div class="row g-3 align-items-end">
             <div class="col-md-6">
-                <label class="form-label">Producto</label>
+                <label for="productoSeleccionado"
+                       class="form-label">
+                    Producto o servicio
+                </label>
 
                 <select id="productoSeleccionado"
                         class="form-select">
-                    <option value="">Seleccione un producto</option>
+
+                    <option value="">
+                        Seleccione un producto o servicio
+                    </option>
 
                     @foreach (var producto in Model.Productos)
                     {
-                        <option value="@producto.Id"
-                                data-codigo="@producto.Codigo"
-                                data-nombre="@producto.Nombre"
-                                data-precio="@producto.Precio.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)"
-                                data-itbis="@producto.TasaItbis.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)"
-                                data-indicador="@producto.IndicadorFacturacion"
-                                data-existencia="@producto.Existencia">
-                            @producto.Codigo - @producto.Nombre
-                            (Disponible: @producto.Existencia)
-                        </option>
-                    }
+                        var esBien =
+                        producto.IndicadorBienOServicio ==
+                        TipoItemDgii.Bien;
+
+                        var unidadTexto = "Sin unidad";
+
+                        if (producto.UnidadMedidaCodigo.HasValue &&
+                        CatalogosDgii.UnidadesMedida.TryGetValue(
+                        producto.UnidadMedidaCodigo.Value,
+                        out var nombreUnidad))
+                        {
+                            unidadTexto =
+                            $"{producto.UnidadMedidaCodigo.Value} - " +
+                            nombreUnidad;
+                        }
+
+                    <option value="@producto.Id"
+                            data-codigo="@producto.Codigo"
+                            data-nombre="@producto.Nombre"
+                            data-precio="@producto.Precio.ToString("0.0000", CultureInfo.InvariantCulture)"
+                            data-itbis="@producto.TasaItbis.ToString("0.00", CultureInfo.InvariantCulture)"
+                            data-indicador="@producto.IndicadorFacturacion"
+                            data-existencia="@producto.Existencia.ToString("0.00", CultureInfo.InvariantCulture)"
+                            data-tipo="@((int)producto.IndicadorBienOServicio)"
+                            data-unidad="@unidadTexto">
+
+                        @producto.Codigo - @producto.Nombre
+                        |
+                        @(esBien
+                                                ? $"Disponible: {producto.Existencia:N2}"
+                                                : "Servicio")
+                    </option>
+                                        }
                 </select>
+
+                <small id="informacionProducto"
+                       class="form-text text-muted">
+                </small>
             </div>
 
             <div class="col-md-2">
-                <label for="cantidadProducto" class="form-label">
+                <label for="cantidadProducto"
+                       class="form-label">
                     Cantidad
                 </label>
 
                 <input id="cantidadProducto"
                        class="form-control"
                        type="number"
-                       min="1"
+                       min="0.01"
+                       step="0.01"
                        value="1" />
             </div>
 
@@ -116,26 +280,26 @@
                 <button id="agregarProducto"
                         class="btn btn-outline-primary"
                         type="button">
-                    Agregar producto
+                    Agregar al detalle
                 </button>
             </div>
         </div>
 
         <div id="mensajeDetalles"
              class="text-danger mt-2 d-none">
-            Agregue al menos un producto a la factura.
+            Debes agregar al menos un bien o servicio.
         </div>
 
         <div class="table-responsive mt-4">
             <table class="table table-hover align-middle">
                 <thead>
                     <tr>
-                        <th>Producto</th>
+                        <th>Bien o servicio</th>
                         <th class="text-end">Precio</th>
                         <th class="text-center">Cantidad</th>
-                        <th class="text-end">Subtotal</th>
+                        <th class="text-end">Base/importe</th>
                         <th class="text-end">ITBIS</th>
-                        <th class="text-end">Total</th>
+                        <th class="text-end">Total línea</th>
                         <th class="text-end">Acción</th>
                     </tr>
                 </thead>
@@ -146,25 +310,37 @@
 
         <div id="sinDetalles"
              class="text-center text-muted py-4">
-            Todavía no se han agregado productos.
+            Todavía no se han agregado bienes o servicios.
         </div>
 
         <div class="row justify-content-end mt-4">
-            <div class="col-md-4">
+            <div class="col-md-5 col-lg-4">
                 <div class="d-flex justify-content-between mb-2">
-                    <span>Subtotal:</span>
-                    <strong id="subtotalGeneral">RD$ 0.00</strong>
+                    <span>Subtotal facturable:</span>
+                    <strong id="subtotalGeneral">
+                        RD$ 0.00
+                    </strong>
                 </div>
 
                 <div class="d-flex justify-content-between mb-2">
                     <span>ITBIS:</span>
-                    <strong id="itbisGeneral">RD$ 0.00</strong>
+                    <strong id="itbisGeneral">
+                        RD$ 0.00
+                    </strong>
+                </div>
+
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Monto no facturable:</span>
+                    <strong id="noFacturableGeneral">
+                        RD$ 0.00
+                    </strong>
                 </div>
 
                 <hr />
 
                 <div class="d-flex justify-content-between">
-                    <span class="h5">Total:</span>
+                    <span class="h5">Total del comprobante:</span>
+
                     <strong id="totalGeneral"
                             class="h5 text-primary">
                         RD$ 0.00
@@ -173,8 +349,14 @@
             </div>
         </div>
 
+        <div class="alert alert-info mt-4 mb-0">
+            Los precios, impuestos y existencias serán validados
+            nuevamente en el servidor antes de registrar la factura.
+        </div>
+
         <div class="d-flex gap-2 mt-4">
-            <button class="btn btn-primary" type="submit">
+            <button class="btn btn-primary"
+                    type="submit">
                 Confirmar factura
             </button>
 
@@ -190,6 +372,11 @@
     <partial name="_ValidationScriptsPartial" />
 
     <script>
+        const detallesIniciales =
+            @Html.Raw(detallesInicialesJson);
+
+        const limiteIdentificacionConsumo = 250000;
+
         const productoSeleccionado =
             document.getElementById("productoSeleccionado");
 
@@ -211,49 +398,169 @@
         const formFactura =
             document.getElementById("formFactura");
 
+        const tipoComprobante =
+            document.getElementById("TipoComprobante");
+
+        const cliente =
+            document.getElementById("ClienteId");
+
+        const ayudaCliente =
+            document.getElementById("ayudaCliente");
+
+        const tipoPago =
+            document.getElementById("TipoPago");
+
+        const fechaLimitePago =
+            document.getElementById("FechaLimitePago");
+
+        const contenedorFechaLimite =
+            document.getElementById("contenedorFechaLimite");
+
+        const indicadorMontoGravado =
+            document.getElementById("IndicadorMontoGravado");
+
+        const informacionProducto =
+            document.getElementById("informacionProducto");
+
         const formatoMoneda = new Intl.NumberFormat("es-DO", {
             style: "currency",
-            currency: "DOP"
+            currency: "DOP",
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
         });
 
-        productoSeleccionado.addEventListener("change", function () {
-            const opcion = this.options[this.selectedIndex];
+        let totalFiscalActual = 0;
 
-            if (opcion.value) {
-                cantidadProducto.max = opcion.dataset.existencia;
-            } else {
-                cantidadProducto.removeAttribute("max");
-            }
+        productoSeleccionado.addEventListener(
+            "change",
+            actualizarProductoSeleccionado);
+
+        agregarProducto.addEventListener(
+            "click",
+            agregarProductoSeleccionado);
+
+        tipoPago.addEventListener(
+            "change",
+            actualizarCondicionPago);
+
+        tipoComprobante.addEventListener(
+            "change",
+            function () {
+                actualizarComprobante();
+                actualizarTotales();
+            });
+
+        indicadorMontoGravado.addEventListener(
+            "change",
+            recalcularTodasLasLineas);
+
+        detalleFactura.addEventListener(
+            "click",
+            function (event) {
+                const boton =
+                    event.target.closest(".eliminar-detalle");
+
+                if (!boton) {
+                    return;
+                }
+
+                boton.closest("tr").remove();
+
+                reindexarDetalles();
+                actualizarTotales();
+                actualizarEstadoDetalle();
+            });
+
+        formFactura.addEventListener(
+            "submit",
+            function (event) {
+                reindexarDetalles();
+                actualizarReglaCliente(totalFiscalActual);
+
+                if (detalleFactura.children.length === 0) {
+                    event.preventDefault();
+
+                    mensajeDetalles.classList.remove(
+                        "d-none");
+                }
+            });
+
+        function actualizarProductoSeleccionado() {
+            const opcion =
+                productoSeleccionado.options[
+                    productoSeleccionado.selectedIndex
+                ];
 
             cantidadProducto.value = 1;
-        });
 
-        agregarProducto.addEventListener("click", function () {
+            if (!opcion.value) {
+                cantidadProducto.removeAttribute("max");
+                informacionProducto.textContent = "";
+                return;
+            }
+
+            const esBien =
+                Number(opcion.dataset.tipo) === 1;
+
+            if (esBien) {
+                cantidadProducto.max =
+                    opcion.dataset.existencia;
+
+                informacionProducto.textContent =
+                    `Bien · ${opcion.dataset.unidad} · ` +
+                    `Existencia: ${opcion.dataset.existencia}`;
+            } else {
+                cantidadProducto.removeAttribute("max");
+
+                informacionProducto.textContent =
+                    `Servicio · ${opcion.dataset.unidad} · ` +
+                    "No controla existencia";
+            }
+        }
+
+        function agregarProductoSeleccionado() {
             const opcion =
                 productoSeleccionado.options[
                     productoSeleccionado.selectedIndex
                 ];
 
             if (!opcion.value) {
-                alert("Seleccione un producto.");
+                alert(
+                    "Selecciona un producto o servicio.");
                 return;
             }
+
+            const cantidad =
+                Number(cantidadProducto.value);
+
+            if (!Number.isFinite(cantidad) ||
+                cantidad <= 0) {
+                alert(
+                    "La cantidad debe ser mayor que cero.");
+                return;
+            }
+
+            const agregado = agregarDetalle(
+                opcion,
+                cantidad,
+                true);
+
+            if (!agregado) {
+                return;
+            }
+
+            productoSeleccionado.value = "";
+            cantidadProducto.value = 1;
+            cantidadProducto.removeAttribute("max");
+            informacionProducto.textContent = "";
+        }
+
+        function agregarDetalle(
+            opcion,
+            cantidad,
+            validarExistencia) {
 
             const productoId = Number(opcion.value);
-            const cantidad = Number(cantidadProducto.value);
-            const existencia = Number(opcion.dataset.existencia);
-
-            if (cantidad <= 0) {
-                alert("La cantidad debe ser mayor que cero.");
-                return;
-            }
-
-            if (cantidad > existencia) {
-                alert(
-                    `Solo hay ${existencia} unidades disponibles.`
-                );
-                return;
-            }
 
             const productoRepetido =
                 detalleFactura.querySelector(
@@ -261,29 +568,78 @@
                 );
 
             if (productoRepetido) {
-                alert("Este producto ya fue agregado.");
-                return;
+                if (validarExistencia) {
+                    alert(
+                        "Este producto o servicio ya fue agregado.");
+                }
+
+                return false;
             }
 
-            const precio = Number(opcion.dataset.precio);
-            const tasaItbis = Number(opcion.dataset.itbis);
-            const subtotal = precio * cantidad;
-            const itbis = subtotal * (tasaItbis / 100);
-            const total = subtotal + itbis;
+            const precio =
+                Number(opcion.dataset.precio);
+
+            const tasaItbis =
+                Number(opcion.dataset.itbis);
+
+            const indicador =
+                Number(opcion.dataset.indicador);
+
+            const existencia =
+                Number(opcion.dataset.existencia);
+
+            const tipo =
+                Number(opcion.dataset.tipo);
+
+            const esBien = tipo === 1;
+
+            if (!Number.isFinite(precio) ||
+                !Number.isFinite(tasaItbis) ||
+                !Number.isFinite(indicador)) {
+                alert(
+                    "Los datos fiscales del producto no son válidos.");
+                return false;
+            }
+
+            if (validarExistencia &&
+                esBien &&
+                cantidad > existencia) {
+                alert(
+                    `Solo hay ${existencia} unidades disponibles.`);
+                return false;
+            }
 
             const fila = document.createElement("tr");
 
             fila.dataset.productoId = productoId;
-            fila.dataset.subtotal = subtotal;
-            fila.dataset.itbis = itbis;
-            fila.dataset.total = total;
+            fila.dataset.precio = precio;
+            fila.dataset.cantidad = cantidad;
+            fila.dataset.itbis = tasaItbis;
+            fila.dataset.indicador = indicador;
+
+            const etiquetaTipo = esBien
+                ? '<span class="badge bg-primary">Bien</span>'
+                : '<span class="badge bg-info text-dark">Servicio</span>';
 
             fila.innerHTML = `
                 <td>
-                    <strong>${opcion.dataset.codigo}</strong><br />
+                    <div class="d-flex align-items-center gap-2">
+                        <strong>
+                            ${escaparHtml(opcion.dataset.codigo)}
+                        </strong>
+
+                        ${etiquetaTipo}
+                    </div>
+
                     <span class="text-muted">
-                        ${opcion.dataset.nombre}
+                        ${escaparHtml(opcion.dataset.nombre)}
                     </span>
+
+                    <br />
+
+                    <small class="text-muted">
+                        ${escaparHtml(opcion.dataset.unidad)}
+                    </small>
 
                     <input type="hidden"
                            data-campo="ProductoId"
@@ -299,19 +655,19 @@
                 </td>
 
                 <td class="text-center">
-                    ${cantidad}
+                    ${formatearCantidad(cantidad)}
                 </td>
 
-                <td class="text-end">
-                    ${formatoMoneda.format(subtotal)}
+                <td class="text-end"
+                    data-valor="subtotal">
                 </td>
 
-                <td class="text-end">
-                    ${formatoMoneda.format(itbis)}
+                <td class="text-end"
+                    data-valor="itbis">
                 </td>
 
-                <td class="text-end fw-semibold">
-                    ${formatoMoneda.format(total)}
+                <td class="text-end fw-semibold"
+                    data-valor="total">
                 </td>
 
                 <td class="text-end">
@@ -324,75 +680,322 @@
 
             detalleFactura.appendChild(fila);
 
+            recalcularLinea(fila);
             reindexarDetalles();
             actualizarTotales();
+            actualizarEstadoDetalle();
 
-            sinDetalles.classList.add("d-none");
-            mensajeDetalles.classList.add("d-none");
+            return true;
+        }
 
-            productoSeleccionado.value = "";
-            cantidadProducto.value = 1;
-        });
+        function recalcularTodasLasLineas() {
+            detalleFactura
+                .querySelectorAll("tr")
+                .forEach(recalcularLinea);
 
-        detalleFactura.addEventListener("click", function (event) {
-            const boton =
-                event.target.closest(".eliminar-detalle");
-
-            if (!boton) {
-                return;
-            }
-
-            boton.closest("tr").remove();
-
-            reindexarDetalles();
             actualizarTotales();
+        }
 
-            if (detalleFactura.children.length === 0) {
-                sinDetalles.classList.remove("d-none");
+        function recalcularLinea(fila) {
+            const precio =
+                Number(fila.dataset.precio);
+
+            const cantidad =
+                Number(fila.dataset.cantidad);
+
+            const tasaItbis =
+                Number(fila.dataset.itbis);
+
+            const indicador =
+                Number(fila.dataset.indicador);
+
+            const montoItem =
+                redondear(precio * cantidad);
+
+            let baseImponible = montoItem;
+
+            const precioIncluyeItbis =
+                Number(indicadorMontoGravado.value) === 1;
+
+            if (precioIncluyeItbis &&
+                tasaItbis > 0 &&
+                (indicador === 1 || indicador === 2)) {
+                baseImponible = redondear(
+                    montoItem /
+                    (1 + tasaItbis / 100));
             }
-        });
 
-        formFactura.addEventListener("submit", function (event) {
-            if (detalleFactura.children.length === 0) {
-                event.preventDefault();
-                mensajeDetalles.classList.remove("d-none");
+            const itbis =
+                indicador === 1 || indicador === 2
+                    ? redondear(
+                        baseImponible *
+                        tasaItbis /
+                        100)
+                    : 0;
+
+            let subtotalFiscal = 0;
+            let montoNoFacturable = 0;
+            let totalFiscal = 0;
+            let totalVisual = 0;
+
+            switch (indicador) {
+                case 0:
+                    montoNoFacturable = montoItem;
+                    totalVisual = montoItem;
+                    break;
+
+                case 1:
+                case 2:
+                    subtotalFiscal = baseImponible;
+                    totalFiscal = redondear(
+                        baseImponible + itbis);
+                    totalVisual = totalFiscal;
+                    break;
+
+                case 3:
+                case 4:
+                    subtotalFiscal = montoItem;
+                    totalFiscal = montoItem;
+                    totalVisual = montoItem;
+                    break;
             }
-        });
 
-        function reindexarDetalles() {
-            const filas = detalleFactura.querySelectorAll("tr");
+            fila.dataset.subtotalFiscal =
+                subtotalFiscal;
 
-            filas.forEach(function (fila, indice) {
-                fila.querySelector(
-                    '[data-campo="ProductoId"]'
-                ).name = `Detalles[${indice}].ProductoId`;
+            fila.dataset.montoNoFacturable =
+                montoNoFacturable;
 
-                fila.querySelector(
-                    '[data-campo="Cantidad"]'
-                ).name = `Detalles[${indice}].Cantidad`;
-            });
+            fila.dataset.itbisCalculado =
+                itbis;
+
+            fila.dataset.totalFiscal =
+                totalFiscal;
+
+            fila.querySelector(
+                '[data-valor="subtotal"]'
+            ).textContent =
+                formatoMoneda.format(
+                    indicador === 0
+                        ? montoItem
+                        : subtotalFiscal);
+
+            fila.querySelector(
+                '[data-valor="itbis"]'
+            ).textContent =
+                formatoMoneda.format(itbis);
+
+            fila.querySelector(
+                '[data-valor="total"]'
+            ).textContent =
+                formatoMoneda.format(totalVisual);
         }
 
         function actualizarTotales() {
             let subtotal = 0;
             let itbis = 0;
+            let noFacturable = 0;
             let total = 0;
 
-            detalleFactura.querySelectorAll("tr")
+            detalleFactura
+                .querySelectorAll("tr")
                 .forEach(function (fila) {
-                    subtotal += Number(fila.dataset.subtotal);
-                    itbis += Number(fila.dataset.itbis);
-                    total += Number(fila.dataset.total);
+                    subtotal += Number(
+                        fila.dataset.subtotalFiscal || 0);
+
+                    itbis += Number(
+                        fila.dataset.itbisCalculado || 0);
+
+                    noFacturable += Number(
+                        fila.dataset.montoNoFacturable || 0);
+
+                    total += Number(
+                        fila.dataset.totalFiscal || 0);
                 });
 
-            document.getElementById("subtotalGeneral")
-                .textContent = formatoMoneda.format(subtotal);
+            subtotal = redondear(subtotal);
+            itbis = redondear(itbis);
+            noFacturable = redondear(noFacturable);
+            total = redondear(total);
 
-            document.getElementById("itbisGeneral")
-                .textContent = formatoMoneda.format(itbis);
+            totalFiscalActual = total;
 
-            document.getElementById("totalGeneral")
-                .textContent = formatoMoneda.format(total);
+            document.getElementById(
+                "subtotalGeneral"
+            ).textContent =
+                formatoMoneda.format(subtotal);
+
+            document.getElementById(
+                "itbisGeneral"
+            ).textContent =
+                formatoMoneda.format(itbis);
+
+            document.getElementById(
+                "noFacturableGeneral"
+            ).textContent =
+                formatoMoneda.format(noFacturable);
+
+            document.getElementById(
+                "totalGeneral"
+            ).textContent =
+                formatoMoneda.format(total);
+
+            actualizarReglaCliente(total);
         }
+
+        function actualizarComprobante() {
+            const esCreditoFiscal =
+                Number(tipoComprobante.value) === 31;
+
+            const opcionGratuita =
+                tipoPago.querySelector(
+                    'option[value="3"]');
+
+            opcionGratuita.disabled =
+                esCreditoFiscal;
+
+            if (esCreditoFiscal &&
+                tipoPago.value === "3") {
+                tipoPago.value = "1";
+                actualizarCondicionPago();
+            }
+
+            actualizarReglaCliente(
+                totalFiscalActual);
+        }
+
+        function actualizarReglaCliente(total) {
+            const codigoComprobante =
+                Number(tipoComprobante.value);
+
+            const esCreditoFiscal =
+                codigoComprobante === 31;
+
+            const consumoRequiereIdentificacion =
+                codigoComprobante === 32 &&
+                total >= limiteIdentificacionConsumo;
+
+            const compradorObligatorio =
+                esCreditoFiscal ||
+                consumoRequiereIdentificacion;
+
+            cliente.required =
+                compradorObligatorio;
+
+            if (esCreditoFiscal) {
+                ayudaCliente.textContent =
+                    "El E31 requiere nombre o razón social y " +
+                    "un RNC o cédula válido.";
+            } else if (
+                consumoRequiereIdentificacion) {
+                ayudaCliente.textContent =
+                    "Este E32 alcanza RD$250,000; el comprador " +
+                    "debe estar identificado con RNC o cédula.";
+            } else {
+                ayudaCliente.textContent =
+                    "En el E32 el comprador puede omitirse por " +
+                    "debajo de RD$250,000.";
+            }
+        }
+
+        function actualizarCondicionPago() {
+            const esCredito =
+                Number(tipoPago.value) === 2;
+
+            contenedorFechaLimite.classList.toggle(
+                "d-none",
+                !esCredito);
+
+            fechaLimitePago.required =
+                esCredito;
+
+            if (!esCredito) {
+                fechaLimitePago.value = "";
+            }
+        }
+
+        function reindexarDetalles() {
+            const filas =
+                detalleFactura.querySelectorAll("tr");
+
+            filas.forEach(function (fila, indice) {
+                fila.querySelector(
+                    '[data-campo="ProductoId"]'
+                ).name =
+                    `Detalles[${indice}].ProductoId`;
+
+                fila.querySelector(
+                    '[data-campo="Cantidad"]'
+                ).name =
+                    `Detalles[${indice}].Cantidad`;
+            });
+        }
+
+        function actualizarEstadoDetalle() {
+            const tieneDetalles =
+                detalleFactura.children.length > 0;
+
+            sinDetalles.classList.toggle(
+                "d-none",
+                tieneDetalles);
+
+            if (tieneDetalles) {
+                mensajeDetalles.classList.add(
+                    "d-none");
+            }
+        }
+
+        function buscarOpcionProducto(productoId) {
+            return Array.from(
+                productoSeleccionado.options
+            ).find(function (opcion) {
+                return Number(opcion.value) ===
+                    Number(productoId);
+            });
+        }
+
+        function redondear(valor) {
+            return Math.round(
+                (valor + Number.EPSILON) * 100
+            ) / 100;
+        }
+
+        function formatearCantidad(valor) {
+            return new Intl.NumberFormat(
+                "es-DO",
+                {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 2
+                }
+            ).format(valor);
+        }
+
+        function escaparHtml(valor) {
+            return String(valor ?? "")
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        }
+
+        detallesIniciales.forEach(function (detalle) {
+            const opcion =
+                buscarOpcionProducto(
+                    detalle.productoId);
+
+            if (opcion) {
+                agregarDetalle(
+                    opcion,
+                    Number(detalle.cantidad),
+                    false);
+            }
+        });
+
+        actualizarComprobante();
+        actualizarCondicionPago();
+        actualizarProductoSeleccionado();
+        recalcularTodasLasLineas();
+        actualizarEstadoDetalle();
     </script>
 }

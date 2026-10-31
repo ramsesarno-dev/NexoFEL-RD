@@ -1,0 +1,250 @@
+@model NexoFELRD.Web.Models.ViewModels.RangoComprobanteCrearViewModel
+
+@{
+    ViewData["Title"] = "Registrar rango e-NCF";
+}
+
+<div class="page-heading">
+    <div>
+        <p class="eyebrow">CONFIGURACIÓN FISCAL</p>
+        <h1>Registrar rango e-NCF</h1>
+
+        <p class="text-muted">
+            Configura una secuencia electrónica simulada.
+        </p>
+    </div>
+
+    <a class="btn btn-outline-secondary"
+       asp-action="Index">
+        Volver a secuencias
+    </a>
+</div>
+
+<div class="alert alert-warning">
+    Para un ambiente real, los datos deben coincidir exactamente
+    con la autorización de secuencias emitida por la DGII.
+</div>
+
+<div class="content-card">
+    <form asp-action="Crear"
+          method="post">
+
+        <div asp-validation-summary="ModelOnly"
+             class="alert alert-danger">
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label asp-for="TipoComprobante"
+                       class="form-label">
+                    Tipo de comprobante
+                </label>
+
+                <select asp-for="TipoComprobante"
+                        class="form-select">
+                    <option value="">
+                        Seleccione un comprobante
+                    </option>
+                    <option value="31">E31 - Crédito fiscal</option>
+                    <option value="32">E32 - Consumo</option>
+                    <option value="33">E33 - Nota de débito</option>
+                    <option value="34">E34 - Nota de crédito</option>
+                    <option value="41">E41 - Compras</option>
+                    <option value="43">E43 - Gastos menores</option>
+                    <option value="44">E44 - Regímenes especiales</option>
+                    <option value="45">E45 - Gubernamental</option>
+                    <option value="46">E46 - Exportaciones</option>
+                    <option value="47">E47 - Pagos al exterior</option>
+                </select>
+
+                <span asp-validation-for="TipoComprobante"
+                      class="text-danger">
+                </span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="FechaAutorizacion"
+                       class="form-label">
+                    Fecha de autorización
+                </label>
+
+                <input asp-for="FechaAutorizacion"
+                       class="form-control"
+                       type="date"
+                       max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+
+                <span asp-validation-for="FechaAutorizacion"
+                      class="text-danger">
+                </span>
+            </div>
+
+            <div class="col-md-3">
+                <label asp-for="FechaVencimiento"
+                       class="form-label">
+                    Fecha de vencimiento
+                </label>
+
+                <input asp-for="FechaVencimiento"
+                       class="form-control"
+                       type="date" />
+
+                <span asp-validation-for="FechaVencimiento"
+                      class="text-danger">
+                </span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="SecuenciaInicial"
+                       class="form-label">
+                    Secuencia inicial
+                </label>
+
+                <input asp-for="SecuenciaInicial"
+                       class="form-control"
+                       type="number"
+                       min="1"
+                       max="9999999999" />
+
+                <span asp-validation-for="SecuenciaInicial"
+                      class="text-danger">
+                </span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="SecuenciaFinal"
+                       class="form-label">
+                    Secuencia final
+                </label>
+
+                <input asp-for="SecuenciaFinal"
+                       class="form-control"
+                       type="number"
+                       min="1"
+                       max="9999999999" />
+
+                <span asp-validation-for="SecuenciaFinal"
+                      class="text-danger">
+                </span>
+            </div>
+
+            <div class="col-md-12">
+                <div class="border rounded p-3 bg-light">
+                    <span class="text-muted d-block">
+                        Vista previa del rango
+                    </span>
+
+                    <strong id="vistaPreviaRango">
+                        Selecciona un tipo de comprobante
+                    </strong>
+                </div>
+            </div>
+
+            <div class="col-md-12">
+                <div class="form-check">
+                    <input asp-for="ActivarInmediatamente"
+                           class="form-check-input" />
+
+                    <label asp-for="ActivarInmediatamente"
+                           class="form-check-label">
+                        Activar este rango inmediatamente
+                    </label>
+                </div>
+
+                <span asp-validation-for="ActivarInmediatamente"
+                      class="text-danger">
+                </span>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+            <button type="submit"
+                    class="btn btn-primary">
+                Guardar rango
+            </button>
+
+            <a class="btn btn-outline-secondary"
+               asp-action="Index">
+                Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        const tipoComprobante =
+            document.getElementById("TipoComprobante");
+
+        const secuenciaInicial =
+            document.getElementById("SecuenciaInicial");
+
+        const secuenciaFinal =
+            document.getElementById("SecuenciaFinal");
+
+        const fechaAutorizacion =
+            document.getElementById("FechaAutorizacion");
+
+        const fechaVencimiento =
+            document.getElementById("FechaVencimiento");
+
+        const vistaPrevia =
+            document.getElementById("vistaPreviaRango");
+
+        tipoComprobante.addEventListener(
+            "change",
+            actualizarVistaPrevia);
+
+        secuenciaInicial.addEventListener(
+            "input",
+            actualizarVistaPrevia);
+
+        secuenciaFinal.addEventListener(
+            "input",
+            actualizarVistaPrevia);
+
+        fechaAutorizacion.addEventListener(
+            "change",
+            actualizarFechaMinima);
+
+        function actualizarVistaPrevia() {
+            const tipo = tipoComprobante.value;
+            const inicial = Number(secuenciaInicial.value);
+            const final = Number(secuenciaFinal.value);
+
+            if (!tipo ||
+                !Number.isInteger(inicial) ||
+                !Number.isInteger(final) ||
+                inicial < 1 ||
+                final < inicial) {
+                vistaPrevia.textContent =
+                    "Completa un rango válido.";
+                return;
+            }
+
+            const prefijo = `E${tipo}`;
+
+            vistaPrevia.textContent =
+                `${prefijo}${String(inicial).padStart(10, "0")} ` +
+                `hasta ` +
+                `${prefijo}${String(final).padStart(10, "0")}`;
+        }
+
+        function actualizarFechaMinima() {
+            const hoy =
+                new Date().toISOString().split("T")[0];
+
+            const autorizacion =
+                fechaAutorizacion.value;
+
+            fechaVencimiento.min =
+                autorizacion > hoy
+                    ? autorizacion
+                    : hoy;
+        }
+
+        actualizarVistaPrevia();
+        actualizarFechaMinima();
+    </script>
+}
