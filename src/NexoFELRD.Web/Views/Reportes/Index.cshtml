@@ -123,7 +123,7 @@
     <div class="col-xl-4">
         <div class="report-net-card h-100">
             <span class="report-net-label">
-                VENTAS NETAS DEL PERÍODO
+                FACTURACIÓN NETA DEL PERÍODO
             </span>
 
             <h2>
@@ -131,13 +131,13 @@
             </h2>
 
             <p>
-                Facturación más notas de débito, menos notas
-                de crédito.
+                Importe con ITBIS: facturas más notas de débito,
+                menos notas de crédito. No equivale a cobros ni utilidad.
             </p>
 
             <div class="report-net-details">
                 <div>
-                    <span>Documentos válidos</span>
+                    <span>Documentos del cálculo</span>
 
                     <strong>
                         @Model.CantidadDocumentos
@@ -208,8 +208,8 @@
                     <span>ITBIS NETO</span>
 
                     <strong class="@(Model.ItbisNeto < 0
-                                                                    ? "text-danger"
-                                                                    : "")">
+                                                                                                ? "text-danger"
+                                                                                                : "")">
                         @($"RD$ {Model.ItbisNeto:N2}")
                     </strong>
 
@@ -224,7 +224,7 @@
 
 <div class="report-summary-strip">
     <div>
-        <span>Documentos válidos</span>
+        <span>Documentos del cálculo</span>
         <strong>@Model.CantidadDocumentos</strong>
     </div>
 
@@ -253,6 +253,15 @@
     </div>
 </div>
 
+@if (Model.CantidadRevertidos > 0)
+{
+    <div class="alert alert-info" role="alert">
+        Hay @Model.CantidadRevertidos factura(s) anulada(s) mediante E34.
+        Se conserva su importe en la fecha original y la nota se descuenta
+        en su propia fecha. También se incluyen en el contador de anulados.
+    </div>
+}
+
 <div class="row g-3 mb-4">
     <div class="col-xl-7">
         <section class="report-panel h-100">
@@ -279,7 +288,7 @@
             {
                 <div class="table-responsive">
                     <table class="table report-table
-                                      align-middle mb-0">
+                                          align-middle mb-0">
                         <thead>
                             <tr>
                                 <th>Fecha</th>
@@ -438,7 +447,7 @@
             </p>
 
             <h2 class="h5 mb-0">
-                Productos con mayor movimiento
+                Cantidades facturadas y reintegradas
             </h2>
         </div>
     </div>
@@ -454,7 +463,7 @@
     {
         <div class="table-responsive">
             <table class="table report-table
-                              align-middle mb-0">
+                                  align-middle mb-0">
                 <thead>
                     <tr>
                         <th>Producto</th>
@@ -462,7 +471,7 @@
                             Cantidad facturada
                         </th>
                         <th class="text-end">
-                            Cantidad devuelta
+                            Cantidad reintegrada
                         </th>
                         <th class="text-end">
                             Cantidad neta
@@ -523,7 +532,7 @@
     @if (Model.ResultadosLimitados)
     {
         <div class="alert alert-warning
-                        rounded-0 border-start-0 border-end-0">
+                            rounded-0 border-start-0 border-end-0">
             Se muestran los primeros 200 documentos.
             Utiliza los filtros para reducir los resultados.
         </div>
@@ -540,7 +549,7 @@
     {
         <div class="table-responsive">
             <table class="table report-table
-                              align-middle mb-0">
+                                  align-middle mb-0">
                 <thead>
                     <tr>
                         <th>Documento</th>
@@ -622,6 +631,12 @@
                             _ => "text-bg-secondary"
                         };
 
+                        if (documento.RevertidaPorNotaCredito)
+                        {
+                            estadoTexto = "Revertida por E34";
+                            estadoClase = "text-bg-secondary";
+                        }
+
                         var montoClase =
                         documento.TipoComprobante switch
                         {
@@ -675,7 +690,7 @@
                                                 .HasValue)
                                 {
                                     <small class="d-block
-                                                              text-muted mt-1">
+                                                                          text-muted mt-1">
                                         Afecta:
                                         @(documento.ENCFOriginal ??
                                                                     "comprobante original")
@@ -696,7 +711,7 @@
                             </td>
 
                             <td class="text-end fw-bold
-                                               text-nowrap @montoClase">
+                                                       text-nowrap @montoClase">
                                 @montoTexto
                             </td>
 
@@ -708,7 +723,7 @@
 
                             <td class="text-end">
                                 <a class="btn btn-sm
-                                                  btn-outline-primary"
+                                                          btn-outline-primary"
                                    asp-controller="Facturas"
                                    asp-action="Detalle"
                                    asp-route-id="@documento.Id">

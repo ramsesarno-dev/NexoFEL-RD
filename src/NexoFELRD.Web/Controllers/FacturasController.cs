@@ -1962,22 +1962,32 @@ public class FacturasController : Controller
                     producto.Precio * solicitud.Cantidad);
 
                 var baseImponible = montoItem;
+                var itbisLinea = 0m;
 
-                if (modelo.IndicadorMontoGravado == 1 &&
-                    tasaEsperada > 0)
+                var aplicaItbis =
+                    producto.IndicadorFacturacion is 1 or 2;
+
+                if (aplicaItbis)
                 {
-                    baseImponible = Redondear(
-                        montoItem /
-                        (1m + tasaEsperada / 100m));
-                }
+                    if (modelo.IndicadorMontoGravado == 1)
+                    {
+                        baseImponible = Redondear(
+                            montoItem /
+                            (1m + tasaEsperada / 100m));
 
-                var itbisLinea =
-                    producto.IndicadorFacturacion is 1 or 2
-                        ? Redondear(
-                            baseImponible *
-                            tasaEsperada /
-                            100m)
-                        : 0m;
+                        // El precio ya incluye ITBIS:
+                        // la base y el impuesto deben conservar ese importe.
+                        itbisLinea = Redondear(
+                            montoItem - baseImponible);
+                    }
+                    else
+                    {
+                        // El precio no incluye ITBIS:
+                        // se calcula el impuesto sobre la base.
+                        itbisLinea = Redondear(
+                            baseImponible * tasaEsperada / 100m);
+                    }
+                }
 
                 switch (producto.IndicadorFacturacion)
                 {

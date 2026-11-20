@@ -37,6 +37,8 @@ public class ReporteIndexViewModel
 
     public int CantidadAnulados { get; set; }
 
+    public int CantidadRevertidos { get; set; }
+
     public int CantidadBorradores { get; set; }
 
     public int TotalResultados { get; set; }
@@ -78,6 +80,11 @@ public class ReporteDocumentoViewModel
     public string? ENCFOriginal { get; set; }
 
     public EstadoFactura Estado { get; set; }
+
+    public bool TieneEfectoFiscal { get; set; }
+
+    public bool RevertidaPorNotaCredito =>
+        Estado == EstadoFactura.Anulada && TieneEfectoFiscal;
 
     public decimal Subtotal { get; set; }
 

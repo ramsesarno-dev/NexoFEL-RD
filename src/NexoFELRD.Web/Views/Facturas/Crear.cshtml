@@ -709,29 +709,30 @@
             const indicador =
                 Number(fila.dataset.indicador);
 
-            const montoItem =
-                redondear(precio * cantidad);
+        const montoItem =
+            redondear(precio * cantidad);
 
-            let baseImponible = montoItem;
+        let baseImponible = montoItem;
+        let itbis = 0;
 
-            const precioIncluyeItbis =
-                Number(indicadorMontoGravado.value) === 1;
+        const precioIncluyeItbis =
+            Number(indicadorMontoGravado.value) === 1;
 
-            if (precioIncluyeItbis &&
-                tasaItbis > 0 &&
-                (indicador === 1 || indicador === 2)) {
+        const aplicaItbis =
+            indicador === 1 || indicador === 2;
+
+        if (aplicaItbis) {
+            if (precioIncluyeItbis) {
                 baseImponible = redondear(
-                    montoItem /
-                    (1 + tasaItbis / 100));
-            }
+                    montoItem / (1 + tasaItbis / 100));
 
-            const itbis =
-                indicador === 1 || indicador === 2
-                    ? redondear(
-                        baseImponible *
-                        tasaItbis /
-                        100)
-                    : 0;
+                itbis = redondear(
+                    montoItem - baseImponible);
+            } else {
+                itbis = redondear(
+                    baseImponible * tasaItbis / 100);
+            }
+        }
 
             let subtotalFiscal = 0;
             let montoNoFacturable = 0;

@@ -6,6 +6,8 @@ using NexoFELRD.Web.Data;
 using NexoFELRD.Web.Models;
 using NexoFELRD.Web.Models.ViewModels;
 
+using NexoFELRD.Web.Services;
+
 namespace NexoFELRD.Web.Controllers;
 
 [Authorize]
@@ -69,57 +71,46 @@ public class HomeController : Controller
                     producto.Existencia <=
                         LimiteBajoInventario);
 
-        var resumenHoy =
-            await _context.Facturas
-                .AsNoTracking()
-                .Where(factura =>
-                    factura.FechaEmision >= hoyDominicana &&
-                    factura.FechaEmision < inicioManana &&
-                    (
-                        factura.Estado ==
-                            EstadoFactura.Confirmada ||
-                        factura.Estado ==
-                            EstadoFactura.Generada
-                    ) &&
-                    (
-                        factura.TipoComprobante ==
-                            TipoComprobante.CreditoFiscal ||
-                        factura.TipoComprobante ==
-                            TipoComprobante.Consumo ||
-                        factura.TipoComprobante ==
-                            TipoComprobante.NotaDebito ||
-                        factura.TipoComprobante ==
-                            TipoComprobante.NotaCredito
-                    ))
-                .GroupBy(factura => 1)
-                .Select(grupo => new
-                {
-                    /*
-                     * E31 y E32 aumentan las ventas.
-                     * E33 aumenta el comprobante original.
-                     * E34 disminuye el comprobante original.
-                     */
-                    VentasNetas = grupo.Sum(factura =>
-                        factura.TipoComprobante ==
-                            TipoComprobante.NotaCredito
-                            ? -factura.Total
-                            : factura.Total),
+        var resumenHoy = await _context.Facturas
+            .AsNoTracking()
+            .ConEfectoFiscal()
+            .Where(factura =>
+                factura.FechaEmision >= hoyDominicana &&
+                factura.FechaEmision < inicioManana &&
+                (
+                    factura.TipoComprobante ==
+                        TipoComprobante.CreditoFiscal ||
+                    factura.TipoComprobante ==
+                        TipoComprobante.Consumo ||
+                    factura.TipoComprobante ==
+                        TipoComprobante.NotaDebito ||
+                    factura.TipoComprobante ==
+                        TipoComprobante.NotaCredito
+                ))
+            .GroupBy(factura => 1)
+            .Select(grupo => new
+            {
+                VentasNetas = grupo.Sum(factura =>
+                    factura.TipoComprobante ==
+                        TipoComprobante.NotaCredito
+                        ? -factura.Total
+                        : factura.Total),
 
-                    CantidadFacturas = grupo.Count(factura =>
-                        factura.TipoComprobante ==
-                            TipoComprobante.CreditoFiscal ||
-                        factura.TipoComprobante ==
-                            TipoComprobante.Consumo),
+                CantidadFacturas = grupo.Count(factura =>
+                    factura.TipoComprobante ==
+                        TipoComprobante.CreditoFiscal ||
+                    factura.TipoComprobante ==
+                        TipoComprobante.Consumo),
 
-                    CantidadNotasDebito = grupo.Count(factura =>
-                        factura.TipoComprobante ==
-                            TipoComprobante.NotaDebito),
+                CantidadNotasDebito = grupo.Count(factura =>
+                    factura.TipoComprobante ==
+                        TipoComprobante.NotaDebito),
 
-                    CantidadNotasCredito = grupo.Count(factura =>
-                        factura.TipoComprobante ==
-                            TipoComprobante.NotaCredito)
-                })
-                .FirstOrDefaultAsync();
+                CantidadNotasCredito = grupo.Count(factura =>
+                    factura.TipoComprobante ==
+                        TipoComprobante.NotaCredito)
+            })
+            .FirstOrDefaultAsync();
 
         var documentosRecientes =
             await _context.Facturas

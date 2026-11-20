@@ -12,11 +12,9 @@ namespace NexoFELRD.Web.Controllers;
 public class ReportesController : Controller
 {
     private const int LimiteDocumentosTabla = 200;
-
     private readonly ApplicationDbContext _context;
 
-    public ReportesController(
-        ApplicationDbContext context)
+    public ReportesController(ApplicationDbContext context)
     {
         _context = context;
     }
@@ -29,118 +27,97 @@ public class ReportesController : Controller
         bool incluirAnuladas = false)
     {
         var zonaDominicana =
-            TimeZoneInfo.FindSystemTimeZoneById(
-                "America/Santo_Domingo");
+            TimeZoneInfo.FindSystemTimeZoneById("America/Santo_Domingo");
 
-        var hoyDominicana =
-            TimeZoneInfo.ConvertTimeFromUtc(
-                DateTime.UtcNow,
-                zonaDominicana
-            ).Date;
+        var hoy = TimeZoneInfo.ConvertTimeFromUtc(
+            DateTime.UtcNow, zonaDominicana).Date;
 
-        var desdeSeleccionada =
-            desde?.Date ??
-            new DateTime(
-                hoyDominicana.Year,
-                hoyDominicana.Month,
-                1);
+        var inicio = desde?.Date ?? new DateTime(hoy.Year, hoy.Month, 1);
+        var fin = hasta?.Date ?? hoy;
 
-        var hastaSeleccionada =
-            hasta?.Date ??
-            hoyDominicana;
-
-        if (hastaSeleccionada < desdeSeleccionada)
+        if (fin < inicio)
         {
-            (desdeSeleccionada, hastaSeleccionada) =
-                (hastaSeleccionada, desdeSeleccionada);
+            (inicio, fin) = (fin, inicio);
 
             ModelState.AddModelError(
                 string.Empty,
                 "Las fechas estaban invertidas y fueron ordenadas automáticamente.");
         }
 
-        var finExclusivo =
-            hastaSeleccionada.AddDays(1);
+        if (tipoSeleccionado.HasValue &&
+            !Enum.IsDefined(typeof(TipoComprobante), tipoSeleccionado.Value))
+        {
+            ModelState.AddModelError(
+                nameof(tipoSeleccionado),
+                "El tipo de comprobante seleccionado no es válido.");
 
-        var consultaDocumentos =
-            _context.Facturas
-                .AsNoTracking()
-                .Where(factura =>
-                    factura.FechaEmision >=
-                        desdeSeleccionada &&
-                    factura.FechaEmision <
-                        finExclusivo);
+            tipoSeleccionado = null;
+        }
+
+        var finExclusivo = fin == DateTime.MaxValue.Date
+            ? DateTime.MaxValue
+            : fin.AddDays(1);
+
+        var consulta = _context.Facturas
+            .AsNoTracking()
+            .Where(factura =>
+                factura.FechaEmision >= inicio &&
+                factura.FechaEmision < finExclusivo);
 
         if (tipoSeleccionado.HasValue)
         {
-            consultaDocumentos =
-                consultaDocumentos.Where(factura =>
-                    factura.TipoComprobante ==
-                        tipoSeleccionado.Value);
+            consulta = consulta.Where(factura =>
+                factura.TipoComprobante == tipoSeleccionado.Value);
         }
 
-        var documentos =
-            await consultaDocumentos
-                .OrderByDescending(factura =>
-                    factura.FechaEmision)
-                .ThenByDescending(factura =>
-                    factura.Id)
-                .Select(factura =>
-                    new ReporteDocumentoViewModel
-                    {
-                        Id = factura.Id,
+        // La nota de anulación se busca en todo el historial.
+        // La factura conserva su fecha comercial original.
+        var idsConEfectoFiscal = consulta
+            .ConEfectoFiscal()
+            .Select(factura => factura.Id);
 
-                        NumeroInterno =
-                            factura.NumeroInterno,
+        var documentos = await consulta
+            .OrderByDescending(factura => factura.FechaEmision)
+            .ThenByDescending(factura => factura.Id)
+            .Select(factura => new ReporteDocumentoViewModel
+            {
+                Id = factura.Id,
+                NumeroInterno = factura.NumeroInterno,
+                ENCF = factura.ENCF,
+                FechaEmision = factura.FechaEmision,
 
-                        ENCF =
-                            factura.ENCF,
+                Comprador =
+                    factura.RazonSocialComprador ??
+                    (factura.Cliente != null
+                        ? factura.Cliente.Nombre
+                        : null) ??
+                    "Consumidor final",
 
-                        FechaEmision =
-                            factura.FechaEmision,
+                TipoComprobante = factura.TipoComprobante,
 
-                        Comprador =
-                            factura.RazonSocialComprador ??
-                            (
-                                factura.Cliente != null
-                                    ? factura.Cliente.Nombre
-                                    : null
-                            ) ??
-                            "Consumidor final",
+                TipoComprobanteAfectado =
+                    factura.FacturaAfectada != null
+                        ? factura.FacturaAfectada.TipoComprobante
+                        : (TipoComprobante?)null,
 
-                        TipoComprobante =
-                            factura.TipoComprobante,
+                FacturaAfectadaId = factura.FacturaAfectadaId,
 
-                        TipoComprobanteAfectado =
-                            factura.FacturaAfectada != null
-                                ? factura.FacturaAfectada
-                                    .TipoComprobante
-                                : null,
+                ENCFOriginal =
+                    factura.FacturaAfectada != null
+                        ? factura.FacturaAfectada.ENCF
+                        : null,
 
-                        FacturaAfectadaId =
-                            factura.FacturaAfectadaId,
+                Estado = factura.Estado,
 
-                        ENCFOriginal =
-                            factura.FacturaAfectada != null
-                                ? factura.FacturaAfectada.ENCF
-                                : null,
+                TieneEfectoFiscal =
+                    idsConEfectoFiscal.Contains(factura.Id),
 
-                        Estado =
-                            factura.Estado,
-
-                        Subtotal =
-                            factura.Subtotal,
-
-                        Itbis =
-                            factura.Itbis,
-
-                        MontoNoFacturable =
-                            factura.MontoNoFacturable,
-
-                        Total =
-                            factura.Total
-                    })
-                .ToListAsync();
+                Subtotal = factura.Subtotal,
+                Itbis = factura.Itbis,
+                MontoNoFacturable = factura.MontoNoFacturable,
+                Total = factura.Total
+            })
+            .ToListAsync();
 
         foreach (var documento in documentos)
         {
@@ -150,377 +127,230 @@ public class ReportesController : Controller
                     documento.TipoComprobante);
         }
 
-        var documentosVigentes =
-            documentos
-                .Where(documento =>
-                    EsEstadoFiscalValido(
-                        documento.Estado))
-                .ToList();
+        var documentosDelCalculo = documentos
+            .Where(documento => documento.TieneEfectoFiscal)
+            .ToList();
 
-        var documentosVenta =
-            documentosVigentes
-                .Where(documento =>
-                    ClasificadorComprobanteFiscal
-                        .ObtenerCategoria(
-                            documento.TipoComprobante,
-                            documento.TipoComprobanteAfectado) ==
-                        CategoriaReporteFiscal.Venta)
-                .ToList();
-
-        var facturacionBruta =
-            documentosVenta
-                .Where(documento =>
-                    ClasificadorComprobanteFiscal
-                        .EsDocumentoBaseVenta(
-                            documento.TipoComprobante))
-                .Sum(documento =>
-                    documento.Total);
-
-        var notasDebito =
-            documentosVenta
-                .Where(documento =>
-                    documento.TipoComprobante ==
-                        TipoComprobante.NotaDebito)
-                .Sum(documento =>
-                    documento.Total);
-
-        var notasCredito =
-            documentosVenta
-                .Where(documento =>
-                    documento.TipoComprobante ==
-                        TipoComprobante.NotaCredito)
-                .Sum(documento =>
-                    documento.Total);
-
-        var ventasNetas =
-            documentosVenta.Sum(documento =>
-                documento.MontoFirmado);
-
-        var itbisNeto =
-            documentosVenta.Sum(documento =>
-                documento.Itbis *
-                ClasificadorComprobanteFiscal.ObtenerSigno(
-                    documento.TipoComprobante));
-
-        var montoNoFacturableNeto =
-            documentosVenta.Sum(documento =>
-                documento.MontoNoFacturable *
-                ClasificadorComprobanteFiscal.ObtenerSigno(
-                    documento.TipoComprobante));
-
-        var comprasYGastosNetos =
-            documentosVigentes
-                .Where(documento =>
-                {
-                    var categoria =
-                        ClasificadorComprobanteFiscal
-                            .ObtenerCategoria(
-                                documento.TipoComprobante,
-                                documento
-                                    .TipoComprobanteAfectado);
-
-                    return categoria ==
-                               CategoriaReporteFiscal.Compra ||
-                           categoria ==
-                               CategoriaReporteFiscal.Gasto ||
-                           categoria ==
-                               CategoriaReporteFiscal
-                                   .PagoExterior;
-                })
-                .Sum(documento =>
-                    documento.MontoFirmado);
-
-        var resumenDiario =
-            documentosVenta
-                .GroupBy(documento =>
-                    documento.FechaEmision.Date)
-                .Select(grupo =>
-                    new ReporteDiarioViewModel
-                    {
-                        Fecha = grupo.Key,
-
-                        FacturacionBruta =
-                            grupo
-                                .Where(documento =>
-                                    ClasificadorComprobanteFiscal
-                                        .EsDocumentoBaseVenta(
-                                            documento
-                                                .TipoComprobante))
-                                .Sum(documento =>
-                                    documento.Total),
-
-                        NotasDebito =
-                            grupo
-                                .Where(documento =>
-                                    documento.TipoComprobante ==
-                                        TipoComprobante
-                                            .NotaDebito)
-                                .Sum(documento =>
-                                    documento.Total),
-
-                        NotasCredito =
-                            grupo
-                                .Where(documento =>
-                                    documento.TipoComprobante ==
-                                        TipoComprobante
-                                            .NotaCredito)
-                                .Sum(documento =>
-                                    documento.Total),
-
-                        VentasNetas =
-                            grupo.Sum(documento =>
-                                documento.MontoFirmado)
-                    })
-                .OrderBy(resumen =>
-                    resumen.Fecha)
-                .ToList();
-
-        var resumenPorTipo =
-            documentosVigentes
-                .GroupBy(documento => new
-                {
+        var ventas = documentosDelCalculo
+            .Where(documento =>
+                ClasificadorComprobanteFiscal.ObtenerCategoria(
                     documento.TipoComprobante,
+                    documento.TipoComprobanteAfectado) ==
+                CategoriaReporteFiscal.Venta)
+            .ToList();
 
-                    Categoria =
-                        ClasificadorComprobanteFiscal
-                            .ObtenerCategoria(
-                                documento.TipoComprobante,
-                                documento
-                                    .TipoComprobanteAfectado)
-                })
-                .Select(grupo =>
-                    new ReporteTipoComprobanteViewModel
-                    {
-                        TipoComprobante =
-                            grupo.Key.TipoComprobante,
+        var resumenDiario = ventas
+            .GroupBy(documento => documento.FechaEmision.Date)
+            .OrderBy(grupo => grupo.Key)
+            .Select(grupo => new ReporteDiarioViewModel
+            {
+                Fecha = grupo.Key,
 
-                        Codigo =
-                            ClasificadorComprobanteFiscal
-                                .ObtenerCodigo(
-                                    grupo.Key
-                                        .TipoComprobante),
-
-                        Nombre =
-                            ClasificadorComprobanteFiscal
-                                .ObtenerNombre(
-                                    grupo.Key
-                                        .TipoComprobante),
-
-                        Categoria =
-                            ClasificadorComprobanteFiscal
-                                .ObtenerNombreCategoria(
-                                    grupo.Key.Categoria),
-
-                        Cantidad =
-                            grupo.Count(),
-
-                        Monto =
-                            grupo.Sum(documento =>
-                                documento.MontoFirmado)
-                    })
-                .OrderBy(resumen =>
-                    (int)resumen.TipoComprobante)
-                .ToList();
-
-        var consultaDetalles =
-            _context.FacturaDetalles
-                .AsNoTracking()
-                .Where(detalle =>
-                    detalle.Factura.FechaEmision >=
-                        desdeSeleccionada &&
-                    detalle.Factura.FechaEmision <
-                        finExclusivo &&
-                    (
-                        detalle.Factura.Estado ==
-                            EstadoFactura.Confirmada ||
-                        detalle.Factura.Estado ==
-                            EstadoFactura.Generada
-                    ));
-
-        if (tipoSeleccionado.HasValue)
-        {
-            consultaDetalles =
-                consultaDetalles.Where(detalle =>
-                    detalle.Factura.TipoComprobante ==
-                        tipoSeleccionado.Value);
-        }
-
-        var detalles =
-            await consultaDetalles
-                .Select(detalle => new
-                {
-                    detalle.ProductoId,
-                    detalle.CodigoProducto,
-                    detalle.NombreItem,
-                    detalle.Cantidad,
-
-                    TipoComprobante =
-                        detalle.Factura.TipoComprobante,
-
-                    TipoComprobanteAfectado =
-                        detalle.Factura
-                                .FacturaAfectada != null
-                            ? detalle.Factura
-                                .FacturaAfectada
-                                .TipoComprobante
-                            : (TipoComprobante?)null
-                })
-                .ToListAsync();
-
-        var productos =
-            detalles
-                .Where(detalle =>
-                    detalle.TipoComprobante !=
-                        TipoComprobante.NotaDebito &&
-                    ClasificadorComprobanteFiscal
-                        .ObtenerCategoria(
-                            detalle.TipoComprobante,
-                            detalle
-                                .TipoComprobanteAfectado) ==
-                        CategoriaReporteFiscal.Venta)
-                .GroupBy(detalle =>
-                    detalle.ProductoId)
-                .Select(grupo =>
-                {
-                    var primero =
-                        grupo.First();
-
-                    var cantidadFacturada =
-                        grupo
-                            .Where(detalle =>
-                                detalle.TipoComprobante !=
-                                    TipoComprobante
-                                        .NotaCredito)
-                            .Sum(detalle =>
-                                detalle.Cantidad);
-
-                    var cantidadDevuelta =
-                        grupo
-                            .Where(detalle =>
-                                detalle.TipoComprobante ==
-                                    TipoComprobante
-                                        .NotaCredito)
-                            .Sum(detalle =>
-                                detalle.Cantidad);
-
-                    return new ReporteProductoViewModel
-                    {
-                        ProductoId =
-                            grupo.Key,
-
-                        Codigo =
-                            primero.CodigoProducto,
-
-                        Nombre =
-                            primero.NombreItem,
-
-                        CantidadFacturada =
-                            cantidadFacturada,
-
-                        CantidadDevuelta =
-                            cantidadDevuelta,
-
-                        CantidadNeta =
-                            cantidadFacturada -
-                            cantidadDevuelta
-                    };
-                })
-                .OrderByDescending(producto =>
-                    producto.CantidadNeta)
-                .ThenByDescending(producto =>
-                    producto.CantidadFacturada)
-                .Take(5)
-                .ToList();
-
-        var documentosParaTabla =
-            incluirAnuladas
-                ? documentos
-                : documentos
+                FacturacionBruta = grupo
                     .Where(documento =>
-                        documento.Estado !=
-                            EstadoFactura.Anulada)
-                    .ToList();
+                        ClasificadorComprobanteFiscal.EsDocumentoBaseVenta(
+                            documento.TipoComprobante))
+                    .Sum(documento => documento.Total),
 
-        var totalResultados =
-            documentosParaTabla.Count;
+                NotasDebito = grupo
+                    .Where(documento =>
+                        documento.TipoComprobante ==
+                        TipoComprobante.NotaDebito)
+                    .Sum(documento => documento.Total),
+
+                NotasCredito = grupo
+                    .Where(documento =>
+                        documento.TipoComprobante ==
+                        TipoComprobante.NotaCredito)
+                    .Sum(documento => documento.Total),
+
+                VentasNetas = grupo.Sum(documento =>
+                    documento.MontoFirmado)
+            })
+            .ToList();
+
+        var resumenPorTipo = documentosDelCalculo
+            .GroupBy(documento => new
+            {
+                documento.TipoComprobante,
+
+                Categoria =
+                    ClasificadorComprobanteFiscal.ObtenerCategoria(
+                        documento.TipoComprobante,
+                        documento.TipoComprobanteAfectado)
+            })
+            .OrderBy(grupo => (int)grupo.Key.TipoComprobante)
+            .Select(grupo => new ReporteTipoComprobanteViewModel
+            {
+                TipoComprobante = grupo.Key.TipoComprobante,
+
+                Codigo =
+                    ClasificadorComprobanteFiscal.ObtenerCodigo(
+                        grupo.Key.TipoComprobante),
+
+                Nombre =
+                    ClasificadorComprobanteFiscal.ObtenerNombre(
+                        grupo.Key.TipoComprobante),
+
+                Categoria =
+                    ClasificadorComprobanteFiscal.ObtenerNombreCategoria(
+                        grupo.Key.Categoria),
+
+                Cantidad = grupo.Count(),
+
+                Monto = grupo.Sum(documento =>
+                    documento.MontoFirmado)
+            })
+            .ToList();
+
+        var tiposBaseVenta = Enum.GetValues<TipoComprobante>()
+            .Where(ClasificadorComprobanteFiscal.EsDocumentoBaseVenta)
+            .ToArray();
+
+        var cantidadesFacturadas = await _context.FacturaDetalles
+            .AsNoTracking()
+            .Where(detalle =>
+                idsConEfectoFiscal.Contains(detalle.FacturaId) &&
+                tiposBaseVenta.Contains(
+                    detalle.Factura.TipoComprobante))
+            .Select(detalle => new ReporteProductoViewModel
+            {
+                ProductoId = detalle.ProductoId,
+                Codigo = detalle.CodigoProducto,
+                Nombre = detalle.NombreItem,
+                CantidadFacturada = detalle.Cantidad
+            })
+            .ToListAsync();
+
+        // Solo cuentan reintegros registrados en inventario.
+        // Las correcciones de texto no generan cantidades devueltas.
+        var cantidadesReintegradas = await _context.MovimientosInventario
+            .AsNoTracking()
+            .ReintegrosDeNotasCredito()
+            .Where(movimiento =>
+                movimiento.FacturaId.HasValue &&
+                idsConEfectoFiscal.Contains(
+                    movimiento.FacturaId.Value) &&
+                (
+                    movimiento.Factura!.FacturaAfectada == null ||
+                    tiposBaseVenta.Contains(
+                        movimiento.Factura.FacturaAfectada.TipoComprobante)
+                ))
+            .Select(movimiento => new ReporteProductoViewModel
+            {
+                ProductoId = movimiento.ProductoId,
+                Codigo = movimiento.Producto.Codigo,
+                Nombre = movimiento.Producto.Nombre,
+                CantidadDevuelta = movimiento.Cantidad
+            })
+            .ToListAsync();
+
+        var productos = cantidadesFacturadas
+            .Concat(cantidadesReintegradas)
+            .GroupBy(producto => producto.ProductoId)
+            .Select(grupo => new ReporteProductoViewModel
+            {
+                ProductoId = grupo.Key,
+                Codigo = grupo.First().Codigo,
+                Nombre = grupo.First().Nombre,
+
+                CantidadFacturada = grupo.Sum(producto =>
+                    producto.CantidadFacturada),
+
+                CantidadDevuelta = grupo.Sum(producto =>
+                    producto.CantidadDevuelta),
+
+                CantidadNeta = grupo.Sum(producto =>
+                    producto.CantidadFacturada -
+                    producto.CantidadDevuelta)
+            })
+            .OrderByDescending(producto =>
+                producto.CantidadFacturada +
+                producto.CantidadDevuelta)
+            .ThenBy(producto => producto.Codigo)
+            .Take(5)
+            .ToList();
+
+        var documentosParaTabla = documentos
+            .Where(documento =>
+                incluirAnuladas ||
+                documento.Estado != EstadoFactura.Anulada ||
+                documento.RevertidaPorNotaCredito)
+            .ToList();
 
         var modelo = new ReporteIndexViewModel
         {
-            Desde =
-                desdeSeleccionada,
+            Desde = inicio,
+            Hasta = fin,
+            TipoSeleccionado = tipoSeleccionado,
+            IncluirAnuladas = incluirAnuladas,
 
-            Hasta =
-                hastaSeleccionada,
+            FacturacionBruta = ventas
+                .Where(documento =>
+                    ClasificadorComprobanteFiscal.EsDocumentoBaseVenta(
+                        documento.TipoComprobante))
+                .Sum(documento => documento.Total),
 
-            TipoSeleccionado =
-                tipoSeleccionado,
+            NotasDebito = ventas
+                .Where(documento =>
+                    documento.TipoComprobante ==
+                    TipoComprobante.NotaDebito)
+                .Sum(documento => documento.Total),
 
-            IncluirAnuladas =
-                incluirAnuladas,
+            NotasCredito = ventas
+                .Where(documento =>
+                    documento.TipoComprobante ==
+                    TipoComprobante.NotaCredito)
+                .Sum(documento => documento.Total),
 
-            FacturacionBruta =
-                facturacionBruta,
+            VentasNetas = ventas.Sum(documento =>
+                documento.MontoFirmado),
 
-            NotasDebito =
-                notasDebito,
+            ItbisNeto = ventas.Sum(documento =>
+                documento.Itbis *
+                ClasificadorComprobanteFiscal.ObtenerSigno(
+                    documento.TipoComprobante)),
 
-            NotasCredito =
-                notasCredito,
+            MontoNoFacturableNeto = ventas.Sum(documento =>
+                documento.MontoNoFacturable *
+                ClasificadorComprobanteFiscal.ObtenerSigno(
+                    documento.TipoComprobante)),
 
-            VentasNetas =
-                ventasNetas,
+            ComprasYGastosNetos = documentosDelCalculo
+                .Where(documento =>
+                    ClasificadorComprobanteFiscal.ObtenerCategoria(
+                        documento.TipoComprobante,
+                        documento.TipoComprobanteAfectado) is
+                    CategoriaReporteFiscal.Compra or
+                    CategoriaReporteFiscal.Gasto or
+                    CategoriaReporteFiscal.PagoExterior)
+                .Sum(documento => documento.MontoFirmado),
 
-            ItbisNeto =
-                itbisNeto,
+            CantidadDocumentos = documentosDelCalculo.Count,
 
-            MontoNoFacturableNeto =
-                montoNoFacturableNeto,
+            CantidadAnulados = documentos.Count(documento =>
+                documento.Estado == EstadoFactura.Anulada),
 
-            ComprasYGastosNetos =
-                comprasYGastosNetos,
+            CantidadRevertidos = documentos.Count(documento =>
+                documento.RevertidaPorNotaCredito),
 
-            CantidadDocumentos =
-                documentosVigentes.Count,
+            CantidadBorradores = documentos.Count(documento =>
+                documento.Estado == EstadoFactura.Borrador),
 
-            CantidadAnulados =
-                documentos.Count(documento =>
-                    documento.Estado ==
-                        EstadoFactura.Anulada),
-
-            CantidadBorradores =
-                documentos.Count(documento =>
-                    documento.Estado ==
-                        EstadoFactura.Borrador),
-
-            TotalResultados =
-                totalResultados,
+            TotalResultados = documentosParaTabla.Count,
 
             ResultadosLimitados =
-                totalResultados >
-                    LimiteDocumentosTabla,
+                documentosParaTabla.Count > LimiteDocumentosTabla,
 
-            Documentos =
-                documentosParaTabla
-                    .Take(LimiteDocumentosTabla)
-                    .ToList(),
+            Documentos = documentosParaTabla
+                .Take(LimiteDocumentosTabla)
+                .ToList(),
 
-            ResumenPorTipo =
-                resumenPorTipo,
-
-            ResumenDiario =
-                resumenDiario,
-
-            Productos =
-                productos
+            ResumenPorTipo = resumenPorTipo,
+            ResumenDiario = resumenDiario,
+            Productos = productos
         };
 
         return View(modelo);
-    }
-
-    private static bool EsEstadoFiscalValido(
-        EstadoFactura estado)
-    {
-        return estado == EstadoFactura.Confirmada ||
-               estado == EstadoFactura.Generada;
     }
 }
