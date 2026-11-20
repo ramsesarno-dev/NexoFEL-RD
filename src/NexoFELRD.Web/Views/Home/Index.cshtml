@@ -1,4 +1,5 @@
 @model NexoFELRD.Web.Models.ViewModels.DashboardViewModel
+@using NexoFELRD.Web.Models
 
 @{
     ViewData["Title"] = "Panel principal";
@@ -7,19 +8,19 @@
         User.IsInRole("Administrador");
 }
 
-<div class="page-heading">
+<div class="page-heading dashboard-heading">
     <div>
         <p class="eyebrow">PANEL DE CONTROL</p>
 
         <h1>Panel principal</h1>
 
-        <p class="text-muted">
-            Resumen actualizado de clientes, productos,
-            inventario y facturación.
+        <p class="text-muted mb-0">
+            Resumen operativo de la facturación electrónica,
+            el inventario y los clientes.
         </p>
     </div>
 
-    <div class="d-flex flex-wrap gap-2">
+    <div class="dashboard-actions">
         <a class="btn btn-outline-primary"
            asp-controller="Clientes"
            asp-action="Crear">
@@ -50,154 +51,951 @@
 </div>
 
 <div class="row g-3 mb-4">
-    <div class="col-md-6 col-xl">
-        <div class="metric-card h-100">
-            <span>Ventas de hoy</span>
+    <div class="col-xl-5">
+        <a class="dashboard-balance-card h-100"
+           asp-controller="Reportes"
+           asp-action="Index">
 
-            <strong>
-                @($"RD$ {Model.VentasHoy:N2}")
-            </strong>
+            <div>
+                <span class="dashboard-balance-label">
+                    RESULTADO FISCAL DE HOY
+                </span>
 
-            <small>
-                Total facturado durante el día
-            </small>
-        </div>
+                <h2>
+                    @($"RD$ {Model.VentasHoy:N2}")
+                </h2>
+
+                <p>
+                    Ventas netas confirmadas, considerando
+                    las notas de débito y crédito emitidas.
+                </p>
+            </div>
+
+            <div class="dashboard-balance-summary">
+                <div>
+                    <strong>
+                        @Model.CantidadFacturasHoy
+                    </strong>
+
+                    <span>
+                        Facturas E31/E32
+                    </span>
+                </div>
+
+                <div>
+                    <strong>
+                        @Model.CantidadNotasDebitoHoy
+                    </strong>
+
+                    <span>
+                        Notas E33
+                    </span>
+                </div>
+
+                <div>
+                    <strong>
+                        @Model.CantidadNotasCreditoHoy
+                    </strong>
+
+                    <span>
+                        Notas E34
+                    </span>
+                </div>
+            </div>
+
+            <span class="dashboard-balance-link">
+                Consultar reportes
+            </span>
+        </a>
     </div>
 
-    <div class="col-md-6 col-xl">
-        <div class="metric-card h-100">
-            <span>Facturas</span>
+    <div class="col-xl-7">
+        <div class="row g-3 h-100">
+            <div class="col-sm-6">
+                <a class="dashboard-stat-card h-100"
+                   asp-controller="Facturas"
+                   asp-action="Index">
 
-            <strong>
-                @Model.CantidadFacturas
-            </strong>
+                    <span class="dashboard-stat-label">
+                        DOCUMENTOS
+                    </span>
 
-            <small>
-                Comprobantes registrados
-            </small>
-        </div>
-    </div>
+                    <strong>
+                        @Model.CantidadFacturas
+                    </strong>
 
-    <div class="col-md-6 col-xl">
-        <div class="metric-card h-100">
-            <span>Alertas de inventario</span>
+                    <small>
+                        Comprobantes fiscales registrados
+                    </small>
 
-            <strong class="@(Model.ProductosBajoInventario > 0
-                                    ? "text-danger"
-                                    : "")">
-                @Model.ProductosBajoInventario
-            </strong>
+                    <span class="dashboard-stat-link">
+                        Ver documentos
+                    </span>
+                </a>
+            </div>
 
-            <small>
-                Bienes activos con cinco unidades o menos
-            </small>
-        </div>
-    </div>
+            <div class="col-sm-6">
+                <a class="dashboard-stat-card
+                          dashboard-stat-card--inventory
+                          @(Model.ProductosBajoInventario > 0
+                              ? "dashboard-stat-card--danger"
+                              : "")
+                          h-100"
+                   asp-controller="Inventario"
+                   asp-action="Index">
 
-    <div class="col-md-6 col-xl">
-        <div class="metric-card h-100">
-            <span>Clientes activos</span>
+                    <span class="dashboard-stat-label">
+                        INVENTARIO
+                    </span>
 
-            <strong>
-                @Model.CantidadClientes
-            </strong>
+                    <strong class="@(Model.ProductosBajoInventario > 0
+                                        ? "text-danger"
+                                        : "")">
+                        @Model.ProductosBajoInventario
+                    </strong>
 
-            <small>
-                Compradores disponibles
-            </small>
-        </div>
-    </div>
+                    <small>
+                        Bienes con cinco unidades o menos
+                    </small>
 
-    <div class="col-md-6 col-xl">
-        <div class="metric-card h-100">
-            <span>Productos activos</span>
+                    <span class="dashboard-stat-link">
+                        Revisar existencias
+                    </span>
+                </a>
+            </div>
 
-            <strong>
-                @Model.CantidadProductos
-            </strong>
+            <div class="col-sm-6">
+                <a class="dashboard-stat-card h-100"
+                   asp-controller="Clientes"
+                   asp-action="Index">
 
-            <small>
-                Bienes y servicios disponibles
-            </small>
+                    <span class="dashboard-stat-label">
+                        CLIENTES
+                    </span>
+
+                    <strong>
+                        @Model.CantidadClientes
+                    </strong>
+
+                    <small>
+                        Compradores activos registrados
+                    </small>
+
+                    <span class="dashboard-stat-link">
+                        Ver clientes
+                    </span>
+                </a>
+            </div>
+
+            <div class="col-sm-6">
+                <a class="dashboard-stat-card h-100"
+                   asp-controller="Productos"
+                   asp-action="Index">
+
+                    <span class="dashboard-stat-label">
+                        CATÁLOGO
+                    </span>
+
+                    <strong>
+                        @Model.CantidadProductos
+                    </strong>
+
+                    <small>
+                        Bienes y servicios activos
+                    </small>
+
+                    <span class="dashboard-stat-link">
+                        Ver productos
+                    </span>
+                </a>
+            </div>
         </div>
     </div>
 </div>
 
-<div class="d-flex justify-content-between
-            align-items-center mb-3">
-    <h2 class="h5 mb-0">
-        Módulos disponibles
-    </h2>
+<div class="row g-3 mb-4">
+    <div class="col-xl-8">
+        <section class="dashboard-panel h-100">
+            <div class="dashboard-panel-header">
+                <div>
+                    <p class="eyebrow mb-1">
+                        ACTIVIDAD FISCAL
+                    </p>
+
+                    <h2 class="h5 mb-0">
+                        Documentos recientes
+                    </h2>
+                </div>
+
+                <a class="btn btn-sm btn-outline-primary"
+                   asp-controller="Facturas"
+                   asp-action="Index">
+                    Ver todos
+                </a>
+            </div>
+
+            @if (!Model.DocumentosRecientes.Any())
+            {
+                <div class="dashboard-empty-state">
+                    <strong>
+                        Todavía no existen documentos
+                    </strong>
+
+                    <span>
+                        Las facturas y notas emitidas aparecerán
+                        en esta sección.
+                    </span>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table dashboard-table
+                                  align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Documento</th>
+                                <th>Tipo</th>
+                                <th>Comprador</th>
+                                <th>Fecha</th>
+                                <th class="text-end">
+                                    Total
+                                </th>
+                                <th class="text-end">
+                                    Acción
+                                </th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach (var documento
+                                      in Model.DocumentosRecientes)
+                            {
+                                var tipoTexto =
+                                    documento.TipoComprobante switch
+                                    {
+                                        TipoComprobante.CreditoFiscal =>
+                                            "E31 - Crédito fiscal",
+
+                                        TipoComprobante.Consumo =>
+                                            "E32 - Consumo",
+
+                                        TipoComprobante.NotaDebito =>
+                                            "E33 - Nota de débito",
+
+                                        TipoComprobante.NotaCredito =>
+                                            "E34 - Nota de crédito",
+
+                                        TipoComprobante.Compras =>
+                                            "E41 - Compras",
+
+                                        TipoComprobante.GastosMenores =>
+                                            "E43 - Gastos menores",
+
+                                        TipoComprobante.RegimenesEspeciales =>
+                                            "E44 - Regímenes especiales",
+
+                                        TipoComprobante.Gubernamental =>
+                                            "E45 - Gubernamental",
+
+                                        TipoComprobante.Exportaciones =>
+                                            "E46 - Exportaciones",
+
+                                        TipoComprobante.PagosExterior =>
+                                            "E47 - Pagos al exterior",
+
+                                        _ => "Comprobante"
+                                    };
+
+                                var tipoClase =
+                                    documento.TipoComprobante switch
+                                    {
+                                        TipoComprobante.CreditoFiscal =>
+                                            "text-bg-primary",
+
+                                        TipoComprobante.Consumo =>
+                                            "text-bg-info",
+
+                                        TipoComprobante.NotaDebito =>
+                                            "text-bg-warning",
+
+                                        TipoComprobante.NotaCredito =>
+                                            "text-bg-danger",
+
+                                        _ => "text-bg-secondary"
+                                    };
+
+                                var prefijoMonto =
+                                    documento.TipoComprobante switch
+                                    {
+                                        TipoComprobante.NotaDebito =>
+                                            "+ ",
+
+                                        TipoComprobante.NotaCredito =>
+                                            "- ",
+
+                                        _ => ""
+                                    };
+
+                                var claseMonto =
+                                    documento.TipoComprobante switch
+                                    {
+                                        TipoComprobante.NotaDebito =>
+                                            "text-danger",
+
+                                        TipoComprobante.NotaCredito =>
+                                            "text-success",
+
+                                        _ => ""
+                                    };
+
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold">
+                                            @documento.NumeroInterno
+                                        </div>
+
+                                        <small class="text-muted">
+                                            @(string.IsNullOrWhiteSpace(
+                                                documento.ENCF)
+                                                ? "e-NCF pendiente"
+                                                : documento.ENCF)
+                                        </small>
+                                    </td>
+
+                                    <td>
+                                        <span class="badge @tipoClase">
+                                            @tipoTexto
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        <span class="dashboard-buyer">
+                                            @documento.Comprador
+                                        </span>
+                                    </td>
+
+                                    <td class="text-nowrap">
+                                        @(documento.FechaEmision
+                                            .ToString("dd/MM/yyyy"))
+                                    </td>
+
+                                    <td class="text-end fw-semibold
+                                               text-nowrap
+                                               @claseMonto">
+                                        @($"{prefijoMonto}RD$ {documento.Total:N2}")
+                                    </td>
+
+                                    <td class="text-end">
+                                        <a class="btn btn-sm
+                                                  btn-outline-primary"
+                                           asp-controller="Facturas"
+                                           asp-action="Detalle"
+                                           asp-route-id="@documento.Id">
+                                            Ver
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+    </div>
+
+    <div class="col-xl-4">
+        <section class="dashboard-panel h-100">
+            <div class="dashboard-panel-header">
+                <div>
+                    <p class="eyebrow mb-1">
+                        CONTROL DE EXISTENCIAS
+                    </p>
+
+                    <h2 class="h5 mb-0">
+                        Inventario bajo
+                    </h2>
+                </div>
+
+                <span class="badge
+                             @(Model.ProductosBajoInventario > 0
+                                 ? "text-bg-danger"
+                                 : "text-bg-success")">
+                    @Model.ProductosBajoInventario
+                </span>
+            </div>
+
+            @if (!Model.ProductosConBajoInventario.Any())
+            {
+                <div class="dashboard-inventory-ok">
+                    <strong>
+                        Inventario bajo control
+                    </strong>
+
+                    <span>
+                        No existen productos activos con cinco
+                        unidades o menos.
+                    </span>
+                </div>
+            }
+            else
+            {
+                <div class="dashboard-stock-list">
+                    @foreach (var producto
+                              in Model.ProductosConBajoInventario)
+                    {
+                        var claseExistencia =
+                            producto.Existencia <= 0
+                                ? "text-bg-danger"
+                                : "text-bg-warning";
+
+                        <div class="dashboard-stock-item">
+                            <div>
+                                <strong>
+                                    @producto.Codigo
+                                </strong>
+
+                                <span>
+                                    @producto.Nombre
+                                </span>
+                            </div>
+
+                            <span class="badge @claseExistencia">
+                                @producto.Existencia.ToString("N2")
+                            </span>
+                        </div>
+                    }
+                </div>
+            }
+
+            <div class="dashboard-panel-footer">
+                <a class="btn btn-outline-primary w-100"
+                   asp-controller="Inventario"
+                   asp-action="Index">
+                    Consultar inventario
+                </a>
+            </div>
+        </section>
+    </div>
+</div>
+
+<div class="dashboard-section-heading">
+    <div>
+        <p class="eyebrow mb-1">
+            ACCESOS DEL SISTEMA
+        </p>
+
+        <h2 class="h5 mb-0">
+            Módulos disponibles
+        </h2>
+    </div>
 </div>
 
 <div class="row g-3">
     <div class="col-md-6 col-xl-4">
-        <a class="module-card h-100"
+        <a class="dashboard-module-card h-100"
            asp-controller="Clientes"
            asp-action="Index">
 
-            <strong>Clientes</strong>
-
-            <span>
-                Registro, consulta y actualización de
-                compradores.
+            <span class="dashboard-module-number">
+                01
             </span>
+
+            <div>
+                <strong>Clientes</strong>
+
+                <span>
+                    Registro, consulta y actualización de
+                    compradores.
+                </span>
+            </div>
+
+            <small>Acceder al módulo</small>
         </a>
     </div>
 
     <div class="col-md-6 col-xl-4">
-        <a class="module-card h-100"
+        <a class="dashboard-module-card h-100"
            asp-controller="Productos"
            asp-action="Index">
 
-            <strong>Productos</strong>
-
-            <span>
-                Bienes, servicios, precios, impuestos y
-                unidades de medida.
+            <span class="dashboard-module-number">
+                02
             </span>
+
+            <div>
+                <strong>Productos</strong>
+
+                <span>
+                    Bienes, servicios, precios, impuestos y
+                    unidades de medida.
+                </span>
+            </div>
+
+            <small>Acceder al módulo</small>
         </a>
     </div>
 
     <div class="col-md-6 col-xl-4">
-        <a class="module-card h-100"
+        <a class="dashboard-module-card h-100"
            asp-controller="Facturas"
            asp-action="Index">
 
-            <strong>Facturas</strong>
-
-            <span>
-                Emisión y consulta de comprobantes.
+            <span class="dashboard-module-number">
+                03
             </span>
+
+            <div>
+                <strong>Facturación</strong>
+
+                <span>
+                    Emisión y consulta de comprobantes
+                    electrónicos.
+                </span>
+            </div>
+
+            <small>Acceder al módulo</small>
         </a>
     </div>
 
     @if (esAdministrador)
     {
         <div class="col-md-6 col-xl-4">
-            <a class="module-card h-100"
+            <a class="dashboard-module-card h-100"
                asp-controller="Inventario"
                asp-action="Index">
 
-                <strong>Inventario</strong>
-
-                <span>
-                    Existencias, movimientos y alertas.
+                <span class="dashboard-module-number">
+                    04
                 </span>
+
+                <div>
+                    <strong>Inventario</strong>
+
+                    <span>
+                        Existencias, movimientos y alertas
+                        operativas.
+                    </span>
+                </div>
+
+                <small>Acceder al módulo</small>
+            </a>
+        </div>
+
+        <div class="col-md-6 col-xl-4">
+            <a class="dashboard-module-card h-100"
+               asp-controller="Secuencias"
+               asp-action="Index">
+
+                <span class="dashboard-module-number">
+                    05
+                </span>
+
+                <div>
+                    <strong>Secuencias e-NCF</strong>
+
+                    <span>
+                        Rangos autorizados, disponibilidad y
+                        vencimientos.
+                    </span>
+                </div>
+
+                <small>Acceder al módulo</small>
             </a>
         </div>
     }
 
     <div class="col-md-6 col-xl-4">
-        <a class="module-card h-100"
+        <a class="dashboard-module-card h-100"
            asp-controller="Reportes"
            asp-action="Index">
 
-            <strong>Reportes</strong>
-
-            <span>
-                Resumen de ventas, impuestos y resultados.
+            <span class="dashboard-module-number">
+                @(esAdministrador ? "06" : "04")
             </span>
+
+            <div>
+                <strong>Reportes</strong>
+
+                <span>
+                    Ventas, impuestos, documentos fiscales y
+                    resultados.
+                </span>
+            </div>
+
+            <small>Acceder al módulo</small>
         </a>
     </div>
 </div>
+
+<style>
+    .dashboard-heading {
+        gap: 1.5rem;
+    }
+
+    .dashboard-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: .5rem;
+    }
+
+    .dashboard-balance-card {
+        position: relative;
+        display: flex;
+        min-height: 100%;
+        overflow: hidden;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 1.75rem;
+        color: #ffffff;
+        text-decoration: none;
+        background:
+            linear-gradient(
+                135deg,
+                #073b64 0%,
+                #176b9b 100%
+            );
+        border: 1px solid rgba(255, 255, 255, .14);
+        border-radius: 1rem;
+        box-shadow: 0 14px 32px rgba(16, 54, 82, .16);
+        transition:
+            transform .18s ease,
+            box-shadow .18s ease;
+    }
+
+    .dashboard-balance-card::after {
+        position: absolute;
+        top: -70px;
+        right: -70px;
+        width: 220px;
+        height: 220px;
+        content: "";
+        border: 42px solid rgba(255, 255, 255, .06);
+        border-radius: 50%;
+    }
+
+    .dashboard-balance-card:hover {
+        color: #ffffff;
+        transform: translateY(-2px);
+        box-shadow: 0 18px 38px rgba(16, 54, 82, .22);
+    }
+
+    .dashboard-balance-label {
+        display: block;
+        margin-bottom: .6rem;
+        font-size: .75rem;
+        font-weight: 800;
+        letter-spacing: .12em;
+        opacity: .82;
+    }
+
+    .dashboard-balance-card h2 {
+        margin-bottom: .5rem;
+        font-size: clamp(2rem, 4vw, 2.75rem);
+        font-weight: 750;
+    }
+
+    .dashboard-balance-card p {
+        max-width: 520px;
+        margin-bottom: 1.5rem;
+        color: rgba(255, 255, 255, .82);
+    }
+
+    .dashboard-balance-summary {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        margin-bottom: 1.25rem;
+        border: 1px solid rgba(255, 255, 255, .14);
+        border-radius: .8rem;
+        background: rgba(255, 255, 255, .08);
+    }
+
+    .dashboard-balance-summary div {
+        padding: .85rem;
+        text-align: center;
+    }
+
+    .dashboard-balance-summary div + div {
+        border-left: 1px solid rgba(255, 255, 255, .14);
+    }
+
+    .dashboard-balance-summary strong,
+    .dashboard-balance-summary span {
+        display: block;
+    }
+
+    .dashboard-balance-summary strong {
+        font-size: 1.15rem;
+    }
+
+    .dashboard-balance-summary span {
+        margin-top: .15rem;
+        font-size: .72rem;
+        color: rgba(255, 255, 255, .76);
+    }
+
+    .dashboard-balance-link {
+        position: relative;
+        z-index: 1;
+        font-size: .85rem;
+        font-weight: 700;
+    }
+
+    .dashboard-stat-card {
+        display: flex;
+        min-height: 145px;
+        flex-direction: column;
+        padding: 1.25rem;
+        color: inherit;
+        text-decoration: none;
+        background: #ffffff;
+        border: 1px solid #d9e3eb;
+        border-radius: .9rem;
+        box-shadow: 0 10px 26px rgba(31, 57, 78, .07);
+        transition:
+            transform .18s ease,
+            border-color .18s ease,
+            box-shadow .18s ease;
+    }
+
+    .dashboard-stat-card:hover {
+        color: inherit;
+        border-color: #2b739f;
+        transform: translateY(-2px);
+        box-shadow: 0 14px 30px rgba(31, 57, 78, .11);
+    }
+
+    .dashboard-stat-card--danger {
+        border-top: 3px solid var(--bs-danger);
+    }
+
+    .dashboard-stat-label {
+        margin-bottom: .45rem;
+        color: #607486;
+        font-size: .72rem;
+        font-weight: 800;
+        letter-spacing: .1em;
+    }
+
+    .dashboard-stat-card strong {
+        margin-bottom: .15rem;
+        color: #082f52;
+        font-size: 1.8rem;
+        line-height: 1.1;
+    }
+
+    .dashboard-stat-card small {
+        color: #697b8c;
+    }
+
+    .dashboard-stat-link {
+        margin-top: auto;
+        padding-top: .75rem;
+        color: #17679a;
+        font-size: .8rem;
+        font-weight: 700;
+    }
+
+    .dashboard-panel {
+        overflow: hidden;
+        background: #ffffff;
+        border: 1px solid #d9e3eb;
+        border-radius: 1rem;
+        box-shadow: 0 12px 28px rgba(31, 57, 78, .07);
+    }
+
+    .dashboard-panel-header {
+        display: flex;
+        min-height: 80px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1.25rem 1.4rem;
+        border-bottom: 1px solid #e2e8ee;
+    }
+
+    .dashboard-table thead th {
+        padding: .85rem 1rem;
+        color: #5a6c7c;
+        background: #f7f9fb;
+        border-bottom-width: 1px;
+        font-size: .74rem;
+        font-weight: 800;
+        letter-spacing: .03em;
+        white-space: nowrap;
+    }
+
+    .dashboard-table tbody td {
+        padding: .9rem 1rem;
+    }
+
+    .dashboard-buyer {
+        display: block;
+        max-width: 180px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .dashboard-empty-state,
+    .dashboard-inventory-ok {
+        display: flex;
+        min-height: 245px;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: .35rem;
+        padding: 2rem;
+        color: #627585;
+        text-align: center;
+    }
+
+    .dashboard-empty-state strong,
+    .dashboard-inventory-ok strong {
+        color: #163b58;
+    }
+
+    .dashboard-stock-list {
+        padding: .3rem 1.4rem;
+    }
+
+    .dashboard-stock-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1rem 0;
+        border-bottom: 1px solid #e5ebf0;
+    }
+
+    .dashboard-stock-item:last-child {
+        border-bottom: 0;
+    }
+
+    .dashboard-stock-item strong,
+    .dashboard-stock-item span {
+        display: block;
+    }
+
+    .dashboard-stock-item div > span {
+        margin-top: .15rem;
+        color: #697b8c;
+        font-size: .86rem;
+    }
+
+    .dashboard-panel-footer {
+        padding: 1rem 1.4rem 1.4rem;
+    }
+
+    .dashboard-section-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin: 1.75rem 0 1rem;
+    }
+
+    .dashboard-module-card {
+        position: relative;
+        display: flex;
+        min-height: 190px;
+        flex-direction: column;
+        padding: 1.35rem;
+        color: inherit;
+        text-decoration: none;
+        background: #ffffff;
+        border: 1px solid #d9e3eb;
+        border-radius: .9rem;
+        box-shadow: 0 10px 24px rgba(31, 57, 78, .06);
+        transition:
+            transform .18s ease,
+            border-color .18s ease,
+            box-shadow .18s ease;
+    }
+
+    .dashboard-module-card:hover {
+        color: inherit;
+        border-color: #216b99;
+        transform: translateY(-3px);
+        box-shadow: 0 15px 30px rgba(31, 57, 78, .11);
+    }
+
+    .dashboard-module-number {
+        display: inline-flex;
+        width: 38px;
+        height: 30px;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+        color: #17679a;
+        background: #eaf4fa;
+        border-radius: .45rem;
+        font-size: .75rem;
+        font-weight: 800;
+    }
+
+    .dashboard-module-card strong,
+    .dashboard-module-card div > span {
+        display: block;
+    }
+
+    .dashboard-module-card strong {
+        margin-bottom: .35rem;
+        color: #082f52;
+        font-size: 1.05rem;
+    }
+
+    .dashboard-module-card div > span {
+        color: #66798a;
+    }
+
+    .dashboard-module-card small {
+        margin-top: auto;
+        padding-top: 1rem;
+        color: #17679a;
+        font-weight: 700;
+    }
+
+    @@media (max-width: 991.98px) {
+        .dashboard-balance-card {
+            min-height: 340px;
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+        .dashboard-heading {
+            align-items: flex-start;
+        }
+
+        .dashboard-actions {
+            width: 100%;
+            justify-content: flex-start;
+        }
+
+        .dashboard-actions .btn {
+            flex: 1 1 calc(50% - .5rem);
+        }
+    }
+
+    @@media (max-width: 575.98px) {
+        .dashboard-actions .btn {
+            flex-basis: 100%;
+        }
+
+        .dashboard-balance-card {
+            min-height: auto;
+            padding: 1.35rem;
+        }
+
+        .dashboard-balance-summary {
+            grid-template-columns: 1fr;
+        }
+
+        .dashboard-balance-summary div + div {
+            border-top: 1px solid rgba(255, 255, 255, .14);
+            border-left: 0;
+        }
+    }
+</style>
