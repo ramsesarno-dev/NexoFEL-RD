@@ -17,9 +17,9 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Obtener código
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Configurar .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 8.0.x
       - name: Restaurar
@@ -30,7 +30,7 @@ jobs:
         run: dotnet test tests/NexoFELRD.UnitTests --configuration Release --no-build --logger "trx;LogFileName=unitarias.trx" --results-directory TestResults/unitarias
       - name: Guardar resultados unitarios
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: resultados-unitarios
           path: TestResults/unitarias
@@ -43,9 +43,9 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Obtener codigo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Configurar .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 8.0.x
       - name: Iniciar SQL Server temporal
@@ -83,7 +83,7 @@ jobs:
         run: dotnet test tests/NexoFELRD.IntegrationTests --configuration Release --no-build --logger "trx;LogFileName=integracion.trx" --results-directory TestResults/integracion
       - name: Guardar resultados de integracion
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: resultados-integracion
           path: TestResults/integracion
