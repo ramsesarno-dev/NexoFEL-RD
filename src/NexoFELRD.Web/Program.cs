@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using NexoFELRD.Web.Data;
+using NexoFELRD.Web.Filters;
+using NexoFELRD.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,6 +32,8 @@ builder.Services
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
+builder.Services.AddScoped<ProteccionEmision>();
+builder.Services.AddScoped<EmisionIdempotenteFilter>();
 
 var app = builder.Build();
 
@@ -158,3 +162,6 @@ static void ValidarResultado(
     throw new InvalidOperationException(
         $"{mensaje}: {errores}");
 }
+
+// Permite arrancar el host real desde WebApplicationFactory, sin cambiar su comportamiento.
+public partial class Program { }

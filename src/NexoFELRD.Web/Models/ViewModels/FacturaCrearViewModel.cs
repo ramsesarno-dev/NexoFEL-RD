@@ -6,6 +6,10 @@ namespace NexoFELRD.Web.Models.ViewModels;
 
 public class FacturaCrearViewModel
 {
+    [Required]
+    [StringLength(2048)]
+    public string TokenOperacion { get; set; } = string.Empty;
+
     [Range(1, int.MaxValue, ErrorMessage = "Seleccione un cliente.")]
     public int? ClienteId { get; set; }
 

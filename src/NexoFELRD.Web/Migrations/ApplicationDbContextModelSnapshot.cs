@@ -293,6 +293,9 @@ namespace NexoFELRD.Web.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<Guid?>("ClaveOperacion")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int?>("ClienteId")
                         .HasColumnType("int");
 
@@ -328,6 +331,11 @@ namespace NexoFELRD.Web.Migrations
 
                     b.Property<DateTime?>("FechaVencimientoSecuencia")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("HuellaSolicitud")
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
 
                     b.Property<string>("IdentificadorExtranjero")
                         .HasMaxLength(20)
@@ -428,6 +436,10 @@ namespace NexoFELRD.Web.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ClaveOperacion")
+                        .IsUnique()
+                        .HasFilter("[ClaveOperacion] IS NOT NULL");
 
                     b.HasIndex("ClienteId");
 

@@ -5,8 +5,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using NexoFELRD.Web.Data;
+using NexoFELRD.Web.Filters;
 using NexoFELRD.Web.Models;
 using NexoFELRD.Web.Models.ViewModels;
+using NexoFELRD.Web.Services;
 
 namespace NexoFELRD.Web.Controllers;
 
@@ -18,15 +20,18 @@ public class FacturasController : Controller
     private readonly ApplicationDbContext _context;
     private readonly UserManager<IdentityUser> _userManager;
     private readonly ILogger<FacturasController> _logger;
+    private readonly ProteccionEmision _proteccionEmision;
 
     public FacturasController(
         ApplicationDbContext context,
         UserManager<IdentityUser> userManager,
-        ILogger<FacturasController> logger)
+        ILogger<FacturasController> logger,
+        ProteccionEmision proteccionEmision)
     {
         _context = context;
         _userManager = userManager;
         _logger = logger;
+        _proteccionEmision = proteccionEmision;
     }
 
     [HttpGet]
@@ -87,6 +92,8 @@ public class FacturasController : Controller
     {
         var modelo = new NotaCreditoCrearViewModel
         {
+            TokenOperacion = _proteccionEmision.CrearToken(
+                _userManager.GetUserId(User)!, ProteccionEmision.Credito, id),
             FacturaAfectadaId = id,
             FechaEmision = DateTime.Today,
             CodigoModificacion =
@@ -109,6 +116,7 @@ public class FacturasController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [ServiceFilter(typeof(EmisionIdempotenteFilter))]
     public async Task<IActionResult> CrearNotaCredito(
     NotaCreditoCrearViewModel modelo)
     {
@@ -1047,6 +1055,7 @@ public class FacturasController : Controller
                     EstadoFactura.Anulada;
             }
 
+            _proteccionEmision.Vincular(notaCredito);
             _context.Facturas.Add(
                 notaCredito);
 
@@ -1094,6 +1103,8 @@ public class FacturasController : Controller
     {
         var modelo = new NotaDebitoCrearViewModel
         {
+            TokenOperacion = _proteccionEmision.CrearToken(
+                _userManager.GetUserId(User)!, ProteccionEmision.Debito, id),
             FacturaAfectadaId = id,
             FechaEmision = DateTime.Today
         };
@@ -1112,6 +1123,7 @@ public class FacturasController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [ServiceFilter(typeof(EmisionIdempotenteFilter))]
     public async Task<IActionResult> CrearNotaDebito(
     NotaDebitoCrearViewModel modelo)
     {
@@ -1711,6 +1723,7 @@ public class FacturasController : Controller
              * Una nota de débito aumenta el valor fiscal, pero no
              * representa una salida adicional de mercancía.
              */
+            _proteccionEmision.Vincular(notaDebito);
             _context.Facturas.Add(
                 notaDebito);
 
@@ -1756,7 +1769,11 @@ public class FacturasController : Controller
     [HttpGet]
     public async Task<IActionResult> Crear()
     {
-        var modelo = new FacturaCrearViewModel();
+        var modelo = new FacturaCrearViewModel
+        {
+            TokenOperacion = _proteccionEmision.CrearToken(
+                _userManager.GetUserId(User)!, ProteccionEmision.Venta)
+        };
 
         await CargarCatalogosAsync(modelo);
 
@@ -1765,6 +1782,7 @@ public class FacturasController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [ServiceFilter(typeof(EmisionIdempotenteFilter))]
     public async Task<IActionResult> Crear(
         FacturaCrearViewModel modelo)
     {
@@ -2209,6 +2227,7 @@ public class FacturasController : Controller
                     });
             }
 
+            _proteccionEmision.Vincular(factura);
             _context.Facturas.Add(factura);
 
             await _context.SaveChangesAsync();
