@@ -293,12 +293,8 @@ public class FacturasController : Controller
                  facturaAfectada.Estado ==
                     EstadoFactura.Generada);
 
-            var tipoValido =
-                facturaAfectada is not null &&
-                facturaAfectada.TipoComprobante !=
-                    TipoComprobante.NotaCredito &&
-                facturaAfectada.TipoComprobante !=
-                    TipoComprobante.NotaDebito;
+            var tipoValido = facturaAfectada is not null &&
+                ReglasEmisionVenta.EsTipoHabilitado(facturaAfectada.TipoComprobante);
 
             if (facturaAfectada is null ||
                 !estadoValido ||
@@ -667,37 +663,9 @@ public class FacturasController : Controller
                             detalleOriginal.Itbis -
                             itbisAcreditado);
 
-                    var acreditaSaldoCompleto =
-                        cantidadSeleccionada ==
-                        cantidadDisponible;
-
-                    var subtotalLinea =
-                        acreditaSaldoCompleto
-                            ? Redondear(
-                                subtotalDisponible)
-                            : Redondear(
-                                detalleOriginal.Subtotal *
-                                cantidadSeleccionada /
-                                detalleOriginal.Cantidad);
-
-                    subtotalLinea =
-                        Math.Min(
-                            subtotalLinea,
-                            subtotalDisponible);
-
-                    var itbisCalculado =
-                        acreditaSaldoCompleto
-                            ? Redondear(
-                                itbisDisponible)
-                            : Redondear(
-                                detalleOriginal.Itbis *
-                                cantidadSeleccionada /
-                                detalleOriginal.Cantidad);
-
-                    itbisCalculado =
-                        Math.Min(
-                            itbisCalculado,
-                            itbisDisponible);
+                    var (subtotalLinea, itbisCalculado) = DistribucionCredito.Repartir(
+                        detalleOriginal, cantidadSeleccionada, cantidadDisponible,
+                        subtotalDisponible, itbisDisponible);
 
                     /*
                      * Después de 30 días el ITBIS no disminuye.
@@ -1299,12 +1267,8 @@ public class FacturasController : Controller
                  facturaAfectada.Estado ==
                     EstadoFactura.Generada);
 
-            var tipoValido =
-                facturaAfectada is not null &&
-                (facturaAfectada.TipoComprobante ==
-                    TipoComprobante.CreditoFiscal ||
-                 facturaAfectada.TipoComprobante ==
-                    TipoComprobante.Consumo);
+            var tipoValido = facturaAfectada is not null &&
+                ReglasEmisionVenta.EsTipoHabilitado(facturaAfectada.TipoComprobante);
 
             if (facturaAfectada is null ||
                 !estadoValido ||
@@ -2323,14 +2287,20 @@ public class FacturasController : Controller
                 "El tipo de ingreso no es válido.");
         }
 
-        if (modelo.TipoComprobante !=
-        TipoComprobante.CreditoFiscal &&
-    modelo.TipoComprobante !=
-        TipoComprobante.Consumo)
+        if (!ReglasEmisionVenta.EsTipoHabilitado(modelo.TipoComprobante))
         {
             ModelState.AddModelError(
                 nameof(modelo.TipoComprobante),
                 "Este tipo de comprobante requiere su flujo especializado.");
+        }
+
+        if (modelo.TipoComprobante == TipoComprobante.Gubernamental &&
+            !modelo.ConfirmarDestinatarioGubernamental)
+        {
+            ModelState.AddModelError(
+                nameof(modelo.ConfirmarDestinatarioGubernamental),
+                "Confirma que el comprador del E45 es una entidad gubernamental " +
+                "que no realiza una actividad comercial.");
         }
 
         if (modelo.IndicadorMontoGravado is not 0 and not 1)
@@ -2391,14 +2361,17 @@ public class FacturasController : Controller
         FacturaCrearViewModel modelo,
         Cliente? cliente)
     {
-        if (modelo.TipoComprobante ==
-                TipoComprobante.CreditoFiscal &&
-            cliente is null)
+        var exigeIdentificacion = ReglasEmisionVenta.RequiereCompradorIdentificado(
+            modelo.TipoComprobante);
+        var esGubernamental = modelo.TipoComprobante == TipoComprobante.Gubernamental;
+
+        if (exigeIdentificacion && cliente is null)
         {
             ModelState.AddModelError(
                 nameof(modelo.ClienteId),
-                "El comprobante de crédito fiscal requiere " +
-                "un cliente.");
+                esGubernamental
+                    ? "El comprobante E45 requiere seleccionar la entidad gubernamental compradora."
+                    : "El comprobante de crédito fiscal requiere un cliente.");
         }
 
         if (cliente is null)
@@ -2424,15 +2397,20 @@ public class FacturasController : Controller
                 "estructura válida.");
         }
 
-        if (modelo.TipoComprobante ==
-                TipoComprobante.CreditoFiscal &&
-            string.IsNullOrWhiteSpace(
-                cliente.IdentificacionFiscal))
+        if (exigeIdentificacion && string.IsNullOrWhiteSpace(cliente.IdentificacionFiscal))
         {
             ModelState.AddModelError(
                 nameof(modelo.ClienteId),
-                "El comprobante de crédito fiscal requiere " +
-                "el RNC o cédula del comprador.");
+                esGubernamental
+                    ? "El comprobante E45 requiere el RNC del comprador."
+                    : "El comprobante de crédito fiscal requiere el RNC o cédula del comprador.");
+        }
+
+        if (esGubernamental && !string.IsNullOrWhiteSpace(cliente.IdentificacionFiscal) &&
+            cliente.IdentificacionFiscal.Any(c => !(c is >= '0' and <= '9' or '-' or ' ')))
+        {
+            ModelState.AddModelError(nameof(modelo.ClienteId),
+                "La identificación del comprador E45 solo puede contener dígitos, espacios y guiones.");
         }
 
         var correo =
@@ -2547,9 +2525,7 @@ public class FacturasController : Controller
             factura.Estado is not (
                 EstadoFactura.Confirmada or
                 EstadoFactura.Generada) ||
-            factura.TipoComprobante is not (
-                TipoComprobante.CreditoFiscal or
-                TipoComprobante.Consumo))
+            !ReglasEmisionVenta.EsTipoHabilitado(factura.TipoComprobante))
         {
             return false;
         }
@@ -2630,11 +2606,7 @@ public class FacturasController : Controller
             factura.Estado == EstadoFactura.Confirmada ||
             factura.Estado == EstadoFactura.Generada;
 
-        var tipoValido =
-            factura.TipoComprobante !=
-                TipoComprobante.NotaCredito &&
-            factura.TipoComprobante !=
-                TipoComprobante.NotaDebito;
+        var tipoValido = ReglasEmisionVenta.EsTipoHabilitado(factura.TipoComprobante);
 
         if (!estadoValido ||
             !tipoValido ||

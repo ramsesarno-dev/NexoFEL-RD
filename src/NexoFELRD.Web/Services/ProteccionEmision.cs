@@ -55,14 +55,22 @@ public sealed class ProteccionEmision(IDataProtectionProvider provider)
 
     // Solo se consideran los datos de entrada que utiliza la operación, no importes
     // calculados en el navegador ni etiquetas informativas cargadas desde la base.
-    public static string Huella(FacturaCrearViewModel modelo) => Calcular(new
+    public static string Huella(FacturaCrearViewModel modelo)
     {
-        modelo.ClienteId, modelo.TipoComprobante, Fecha = modelo.FechaEmision.Date,
-        modelo.TipoPago, Vencimiento = modelo.FechaLimitePago?.Date,
-        modelo.TipoIngreso, modelo.IndicadorMontoGravado,
-        Detalles = (modelo.Detalles ?? []).OrderBy(x => x.ProductoId)
-            .ThenBy(x => x.Cantidad).Select(x => new { x.ProductoId, Cantidad = Numero(x.Cantidad) }).ToArray()
-    });
+        var datos = new
+        {
+            modelo.ClienteId, modelo.TipoComprobante, Fecha = modelo.FechaEmision.Date,
+            modelo.TipoPago, Vencimiento = modelo.FechaLimitePago?.Date,
+            modelo.TipoIngreso, modelo.IndicadorMontoGravado,
+            Detalles = (modelo.Detalles ?? []).OrderBy(x => x.ProductoId)
+                .ThenBy(x => x.Cantidad).Select(x => new { x.ProductoId, Cantidad = Numero(x.Cantidad) }).ToArray()
+        };
+
+        // Mantiene la huella exacta de E31/E32 emitidos antes de incorporar E45.
+        return modelo.TipoComprobante == TipoComprobante.Gubernamental
+            ? Calcular(new { Datos = datos, modelo.ConfirmarDestinatarioGubernamental })
+            : Calcular(datos);
+    }
 
     public static string Huella(NotaCreditoCrearViewModel modelo) => Calcular(new
     {

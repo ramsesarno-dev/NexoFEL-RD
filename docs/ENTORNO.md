@@ -10,11 +10,11 @@
 
 ## Configuración local
 
-La cadena de desarrollo usa LocalDB. Si el equipo utiliza una instancia diferente, cada integrante debe modificar únicamente `appsettings.Development.json` y no almacenar credenciales reales en el repositorio.
+La configuración inicial contempla LocalDB. Cada integrante debe configurar su conexión local en User Secrets (`ConnectionStrings:DefaultConnection`), sin almacenar credenciales reales en el repositorio. El módulo E45 no cambia esa configuración.
 
 ## Base de datos
 
-Después de restaurar los paquetes, se debe crear la migración inicial y actualizar la base de datos. Los roles `Administrador` y `Facturador` están definidos como datos iniciales en `ApplicationDbContext` y serán incluidos en la primera migración.
+La solución ya contiene las migraciones y los roles `Administrador` y `Facturador`. Para una instalación nueva, aplicar las migraciones existentes; no generar otra migración inicial. No eliminar ni recrear una base existente para instalar una actualización. El módulo E45 no modifica el modelo persistido ni necesita una migración nueva.
 
 ## Comprobaciones iniciales
 

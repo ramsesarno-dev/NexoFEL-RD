@@ -85,6 +85,10 @@
                     <option value="31">
                         E31 - Crédito fiscal
                     </option>
+
+                    <option value="45">
+                        E45 - Gubernamental
+                    </option>
                 </select>
 
                 <span asp-validation-for="TipoComprobante"
@@ -92,7 +96,8 @@
                 </span>
 
                 <small class="form-text text-muted">
-                    Los E33–E47 tendrán sus flujos especializados.
+                    Las notas E33/E34 se crean desde el detalle del comprobante original.
+                    E41, E43, E44, E46 y E47 siguen pendientes de implementación.
                 </small>
             </div>
 
@@ -200,6 +205,26 @@
                       class="text-danger">
                 </span>
             </div>
+        </div>
+
+        <div id="avisoGubernamental"
+             class="alert alert-info mt-3 @(Model.TipoComprobante == TipoComprobante.Gubernamental ? "" : "d-none")">
+            <p class="mb-2">
+                <strong>E45 - Gubernamental.</strong>
+                Selecciona una institución pública que no realice actividad comercial,
+                con su nombre o razón social e identificación fiscal.
+                El ITBIS se calcula según cada producto: E45 no activa una exención automática.
+            </p>
+            <div class="form-check">
+                <input asp-for="ConfirmarDestinatarioGubernamental" class="form-check-input" />
+                <label asp-for="ConfirmarDestinatarioGubernamental" class="form-check-label"></label>
+            </div>
+            <span asp-validation-for="ConfirmarDestinatarioGubernamental" class="text-danger"></span>
+            <small class="d-block mt-2">
+                Esta es una declaración del operador. La aplicación valida la estructura
+                de la identificación, pero no consulta el padrón ni certifica la condición
+                gubernamental del comprador ante DGII.
+            </small>
         </div>
 
         <hr class="my-4" />
@@ -408,6 +433,9 @@
 
         const ayudaCliente =
             document.getElementById("ayudaCliente");
+
+        const avisoGubernamental = document.getElementById("avisoGubernamental");
+        const confirmarGubernamental = document.getElementById("ConfirmarDestinatarioGubernamental");
 
         const tipoPago =
             document.getElementById("TipoPago");
@@ -850,6 +878,12 @@
             const esCreditoFiscal =
                 Number(tipoComprobante.value) === 31;
 
+            const esGubernamental = Number(tipoComprobante.value) === 45;
+            avisoGubernamental.classList.toggle("d-none", !esGubernamental);
+            confirmarGubernamental.required = esGubernamental;
+            confirmarGubernamental.disabled = !esGubernamental;
+            if (!esGubernamental) confirmarGubernamental.checked = false;
+
             const opcionGratuita =
                 tipoPago.querySelector(
                     'option[value="3"]');
@@ -874,18 +908,25 @@
             const esCreditoFiscal =
                 codigoComprobante === 31;
 
+            const esGubernamental = codigoComprobante === 45;
+
             const consumoRequiereIdentificacion =
                 codigoComprobante === 32 &&
                 total >= limiteIdentificacionConsumo;
 
             const compradorObligatorio =
                 esCreditoFiscal ||
+                esGubernamental ||
                 consumoRequiereIdentificacion;
 
             cliente.required =
                 compradorObligatorio;
 
-            if (esCreditoFiscal) {
+            if (esGubernamental) {
+                ayudaCliente.textContent =
+                    "El E45 requiere identificar la entidad gubernamental compradora " +
+                    "con nombre o razón social y un RNC de estructura válida.";
+            } else if (esCreditoFiscal) {
                 ayudaCliente.textContent =
                     "El E31 requiere nombre o razón social y " +
                     "un RNC o cédula válido.";

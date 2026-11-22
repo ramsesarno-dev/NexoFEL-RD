@@ -15,6 +15,14 @@ namespace NexoFELRD.IntegrationTests.Infraestructura;
 
 public abstract class PruebaConSqlServer : IAsyncLifetime
 {
+    static PruebaConSqlServer()
+    {
+        // Los numerosos hosts aislados no necesitan notificaciones de edición.
+        // El sondeo evita agotar las instancias inotify de Linux; no cambia
+        // permisos del sistema ni la configuración de la aplicación normal.
+        Environment.SetEnvironmentVariable("DOTNET_USE_POLLING_FILE_WATCHER", "1");
+    }
+
     protected AplicacionDePruebas App { get; private set; } = null!;
     protected HttpClient Administrador { get; private set; } = null!;
     protected HttpClient Facturador { get; private set; } = null!;

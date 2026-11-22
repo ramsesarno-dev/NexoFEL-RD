@@ -20,6 +20,7 @@ public class ComprobantePdfTests
     [InlineData(TipoComprobante.Consumo, "Factura de consumo")]
     [InlineData(TipoComprobante.NotaCredito, "Nota de crédito")]
     [InlineData(TipoComprobante.NotaDebito, "Nota de débito")]
+    [InlineData(TipoComprobante.Gubernamental, "Comprobante gubernamental")]
     public void GeneraUnPdfRealConElTipoYLosDatosGuardados(TipoComprobante tipo, string titulo)
     {
         var factura = Ejemplo(tipo);

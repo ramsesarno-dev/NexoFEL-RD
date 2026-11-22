@@ -4,7 +4,9 @@ Sistema académico de facturación e inventario básico para pequeñas empresas.
 
 ## Estado actual
 
-Incluye autenticación con roles, clientes, productos, facturas E31/E32, notas E33/E34, rangos e-NCF, inventario, dashboard, reportes y pruebas automatizadas con SQL Server. Los comprobantes se pueden descargar en PDF con un QR de consulta interna que requiere sesión.
+Incluye autenticación con roles, clientes, productos, facturas E31/E32 y comprobantes gubernamentales E45, notas E33/E34 sobre estos documentos, rangos e-NCF, inventario, dashboard, reportes y pruebas automatizadas con SQL Server. Los comprobantes se pueden descargar en PDF con un QR de consulta interna que requiere sesión.
+
+E45 exige comprador identificado y una declaración del operador sobre la naturaleza gubernamental del destinatario. No consulta el padrón ni acredita esa condición ante DGII. E41, E43, E44, E46 y E47 todavía no tienen flujo de emisión.
 
 El proyecto no incorpora firma, envío ni aceptación de documentos ante DGII. El QR interno no es un mecanismo de validación oficial.
 
@@ -53,6 +55,8 @@ Cada cambio debe entrar a `develop` mediante una solicitud de cambios revisada p
 
 ## Documentación
 
+- `docs/E45_GUBERNAMENTAL.md`: alcance, instalación, validaciones y comprobación del nuevo flujo.
+- `docs/RESULTADOS_E45.md`: resultados locales y límites de la verificación de E45.
 - `docs/PDF_Y_QR.md`: descarga de facturas/notas, configuración del emisor y QR de consulta interna.
 - `docs/RESULTADOS_PDF_QR.md`: alcance y resultados de las pruebas del nuevo módulo.
 - `docs/ENTORNO.md`: preparación del entorno.
