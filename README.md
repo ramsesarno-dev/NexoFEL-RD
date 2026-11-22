@@ -1,10 +1,12 @@
 # NexoFEL RD
 
-Base inicial del sistema web de facturación electrónica e inventario básico para pequeñas empresas.
+Sistema académico de facturación e inventario básico para pequeñas empresas.
 
 ## Estado actual
 
-El repositorio contiene la estructura inicial del proyecto, configuración para SQL Server e Identity y las pantallas de Dashboard, Clientes, Productos, Facturas, Inventario y Reportes. Los módulos muestran su estado inicial y quedan listos para desarrollar las operaciones de negocio.
+Incluye autenticación con roles, clientes, productos, facturas E31/E32, notas E33/E34, rangos e-NCF, inventario, dashboard, reportes y pruebas automatizadas con SQL Server. Los comprobantes se pueden descargar en PDF con un QR de consulta interna que requiere sesión.
+
+El proyecto no incorpora firma, envío ni aceptación de documentos ante DGII. El QR interno no es un mecanismo de validación oficial.
 
 ## Tecnologías
 
@@ -26,18 +28,17 @@ El repositorio contiene la estructura inicial del proyecto, configuración para 
 ## Primer inicio
 
 1. Abrir `NexoFELRD.sln`.
-2. Revisar la cadena `DefaultConnection` en `appsettings.Development.json`.
+2. Configurar `ConnectionStrings:DefaultConnection`, `SeedAdmin:Email` y `SeedAdmin:Password` en User Secrets para desarrollo.
 3. Restaurar paquetes NuGet.
 4. Abrir la Consola del Administrador de Paquetes.
-5. Ejecutar `Add-Migration InitialCreate`.
-6. Ejecutar `Update-Database`.
+5. La solución ya contiene migraciones: no generar otra `InitialCreate`.
+6. Para una instalación nueva, aplicar las migraciones existentes con `Update-Database`. El arranque en Development también las aplica. No recrear una base existente.
 7. Iniciar `NexoFELRD.Web`.
 
 También puede utilizarse la terminal:
 
 ```bash
 dotnet restore
-dotnet ef migrations add InitialCreate --project src/NexoFELRD.Web
 dotnet ef database update --project src/NexoFELRD.Web
 dotnet run --project src/NexoFELRD.Web
 ```
@@ -52,6 +53,8 @@ Cada cambio debe entrar a `develop` mediante una solicitud de cambios revisada p
 
 ## Documentación
 
+- `docs/PDF_Y_QR.md`: descarga de facturas/notas, configuración del emisor y QR de consulta interna.
+- `docs/RESULTADOS_PDF_QR.md`: alcance y resultados de las pruebas del nuevo módulo.
 - `docs/ENTORNO.md`: preparación del entorno.
 - `docs/ESTRUCTURA.md`: organización de carpetas y responsabilidades.
 - `docs/ROADMAP.md`: orden técnico de implementación.

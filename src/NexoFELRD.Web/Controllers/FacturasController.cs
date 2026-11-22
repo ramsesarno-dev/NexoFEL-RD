@@ -9,6 +9,7 @@ using NexoFELRD.Web.Filters;
 using NexoFELRD.Web.Models;
 using NexoFELRD.Web.Models.ViewModels;
 using NexoFELRD.Web.Services;
+using NexoFELRD.Web.Services.Documentos;
 
 namespace NexoFELRD.Web.Controllers;
 
@@ -85,6 +86,40 @@ public class FacturasController : Controller
         }
 
         return View(factura);
+    }
+
+    [HttpGet]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> DescargarPdf(
+        int id,
+        [FromServices] ServicioComprobantePdf documentos,
+        CancellationToken cancellationToken)
+    {
+        // Conserva la autorización del controlador y utiliza solo datos históricos.
+        // No carga productos/clientes actuales ni entra en los flujos de emisión.
+        var factura = await _context.Facturas
+            .AsNoTracking()
+            .Include(x => x.Detalles)
+            .Include(x => x.FormasPago)
+            .Include(x => x.FacturaAfectada)
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+
+        if (factura is null)
+            return NotFound();
+
+        cancellationToken.ThrowIfCancellationRequested();
+        try
+        {
+            var contenido = documentos.Generar(factura);
+            Response.Headers["X-Content-Type-Options"] = "nosniff";
+            return File(contenido, "application/pdf", ServicioComprobantePdf.NombreArchivo(factura));
+        }
+        catch (ConfiguracionDocumentoPdfException ex)
+        {
+            _logger.LogWarning("No se generó el PDF por una configuración de documentos inválida.");
+            return Problem(statusCode: StatusCodes.Status503ServiceUnavailable,
+                title: "No se pudo generar el PDF", detail: ex.Message);
+        }
     }
 
     [HttpGet]

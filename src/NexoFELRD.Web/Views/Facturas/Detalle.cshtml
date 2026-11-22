@@ -197,6 +197,12 @@
             </a>
         }
 
+        <a class="btn btn-primary"
+           asp-action="DescargarPdf"
+           asp-route-id="@Model.Id">
+            Descargar PDF
+        </a>
+
         <button type="button"
                 class="btn btn-outline-primary"
                 onclick="window.print()">

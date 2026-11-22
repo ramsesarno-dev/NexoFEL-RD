@@ -4,8 +4,8 @@ La solución incluye dos proyectos. Las pruebas no envían documentos a DGII ni 
 
 | Proyecto | Alcance |
 | --- | --- |
-| `NexoFELRD.UnitTests` | Clasificación de comprobantes, signos y reglas de inclusión fiscal. No necesita SQL Server. |
-| `NexoFELRD.IntegrationTests` | Solicitudes HTTP a la aplicación, login real de Identity, antifalsificación, permisos, migraciones, transacciones, inventario, secuencias y reportes con SQL Server. |
+| `NexoFELRD.UnitTests` | Clasificación fiscal, idempotencia, PDF real, paginación, datos históricos y configuración del QR. No necesita SQL Server. |
+| `NexoFELRD.IntegrationTests` | Solicitudes HTTP a la aplicación, login real de Identity, antifalsificación, permisos, migraciones, transacciones, inventario, secuencias, reportes y descargas PDF con SQL Server. |
 
 ## 1. Seguridad de los datos
 
@@ -60,6 +60,10 @@ No ejecute `Add-Migration`, `Update-Database`, `EnsureDeleted` ni scripts manual
 - Reenvío de notas de débito, anulaciones totales y correcciones de texto.
 - Claves ligadas al usuario, flujo y factura; rechazo de solicitudes manipuladas y cambios en una operación ya procesada.
 - Formularios nuevos legítimos, reintentos después de validación fallida o rollback, índice único, dos hosts independientes y conservación de documentos al migrar.
+- PDF descargable para Administrador/Facturador, denegación de anónimos y usuarios sin rol, 404 y cabeceras sin caché.
+- PDF de crédito parcial, débito y factura anulada; contenido histórico y rechazo de configuración incorrecta sin escrituras.
+- Cinco descargas PDF simultáneas sin cambios en facturas, detalles, pagos, productos, clientes, movimientos ni rangos.
+- URL interna del QR tomada de configuración, nunca de la cabecera Host de la solicitud.
 
 Las pruebas de concurrencia se envían con clientes/solicitudes independientes y una salida coordinada. Son comprobaciones de integridad bajo los escenarios incluidos, no una demostración de ausencia de todas las condiciones de carrera. La prueba de secuencias permite un rechazo controlado por contención y exige que no deje escrituras parciales; no mide rendimiento ni garantiza que ambas ventas legítimas se confirmen sin reintento.
 
@@ -104,6 +108,7 @@ Los fallos de conexión, autenticación o infraestructura también hacen fallar 
 
 ## Referencias
 
+- Descarga PDF y QR: `docs/PDF_Y_QR.md` y `docs/RESULTADOS_PDF_QR.md`.
 - Microsoft. Pruebas de integración en ASP.NET Core: https://learn.microsoft.com/en-us/aspnet/core/test/integration-tests?view=aspnetcore-8.0
 - Microsoft. Elección de una estrategia de pruebas de EF Core: https://learn.microsoft.com/en-us/ef/core/testing/choosing-a-testing-strategy
 - xUnit.net. Introducción a xUnit.net v2: https://xunit.net/docs/getting-started/v2/getting-started

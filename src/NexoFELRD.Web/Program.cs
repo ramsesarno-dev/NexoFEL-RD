@@ -3,6 +3,11 @@ using Microsoft.EntityFrameworkCore;
 using NexoFELRD.Web.Data;
 using NexoFELRD.Web.Filters;
 using NexoFELRD.Web.Services;
+using NexoFELRD.Web.Services.Documentos;
+
+// Proyecto académico: revisar elegibilidad antes de un uso comercial.
+QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+QuestPDF.Settings.UseSystemFonts = false;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,6 +39,9 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 builder.Services.AddScoped<ProteccionEmision>();
 builder.Services.AddScoped<EmisionIdempotenteFilter>();
+builder.Services.Configure<DocumentoPdfOpciones>(
+    builder.Configuration.GetSection(DocumentoPdfOpciones.Seccion));
+builder.Services.AddScoped<ServicioComprobantePdf>();
 
 var app = builder.Build();
 
