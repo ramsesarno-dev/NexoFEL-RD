@@ -40,6 +40,10 @@ public class FacturaCrearViewModel
         = TipoIngresoDgii.OperacionesNoFinancieras;
 
     public byte IndicadorMontoGravado { get; set; }
+
+    // Declaración del operador, no una certificación ni consulta al padrón DGII.
+    [Display(Name = "Confirmo que el comprador es una entidad gubernamental que no realiza una actividad comercial.")]
+    public bool ConfirmarDestinatarioGubernamental { get; set; }
 }
 
 public class ProductoFacturaViewModel

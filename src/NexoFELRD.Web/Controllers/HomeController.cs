@@ -83,6 +83,8 @@ public class HomeController : Controller
                     factura.TipoComprobante ==
                         TipoComprobante.Consumo ||
                     factura.TipoComprobante ==
+                        TipoComprobante.Gubernamental ||
+                    factura.TipoComprobante ==
                         TipoComprobante.NotaDebito ||
                     factura.TipoComprobante ==
                         TipoComprobante.NotaCredito
@@ -100,7 +102,9 @@ public class HomeController : Controller
                     factura.TipoComprobante ==
                         TipoComprobante.CreditoFiscal ||
                     factura.TipoComprobante ==
-                        TipoComprobante.Consumo),
+                        TipoComprobante.Consumo ||
+                    factura.TipoComprobante ==
+                        TipoComprobante.Gubernamental),
 
                 CantidadNotasDebito = grupo.Count(factura =>
                     factura.TipoComprobante ==

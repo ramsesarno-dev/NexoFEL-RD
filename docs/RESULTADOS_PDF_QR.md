@@ -20,10 +20,12 @@ La verificación utiliza .NET SDK 8.0.415, Linux x64 y SQL Server 2022 Developer
 | Texto dentro de los márgenes de página | Correcto en las 21 páginas inspeccionadas por el verificador |
 | Revisión visual | Factura E31/E32, crédito parcial, continuación de tabla, textos largos e importes grandes |
 | Modelo y migraciones de base de datos | No modificados por este cambio |
-| GitHub Actions del nuevo módulo | Pendiente de subir el código e iniciar una ejecución nueva |
-| Instalación en el Windows del usuario | Pendiente de copiar los archivos y ejecutar allí la comprobación |
+| GitHub Actions del módulo PDF/QR | Completado posteriormente: 55 unitarias y 80 de integración aprobadas en el push `dfd46c6` y tras la integración en `e19f39c` |
+| Instalación del PDF/QR en el Windows del usuario | Completada posteriormente: 55 unitarias y 80 de integración aprobadas, PDF de factura/nota y acceso autenticado revisados |
 
 La cifra de 135 incluye las 90 pruebas anteriores; no se omitieron casos existentes para obtener un resultado verde. Los resultados `.trx` se incluyen en `evidencias/` del paquete, fuera de la carpeta de código para copiar.
+
+Actualización del 22/11/2026: el módulo PDF/QR se publicó en `dfd46c62958efffaae060ab2d4b24b3d5500f2af` y se integró mediante el Pull Request #4 en `e19f39c3903ce7927cba42584b4614234d0a07e2`. Ejecuciones verificadas: https://github.com/ramsesarno-dev/NexoFEL-RD/actions/runs/45054717559 y https://github.com/ramsesarno-dev/NexoFEL-RD/actions/runs/45058103750. Esta evidencia pertenece al módulo anterior; no acredita una ejecución remota del nuevo cambio E45, documentado en `RESULTADOS_E45.md`.
 
 ## Pruebas unitarias nuevas
 

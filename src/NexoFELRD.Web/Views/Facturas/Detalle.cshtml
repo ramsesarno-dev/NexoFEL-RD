@@ -178,10 +178,7 @@
 
         @if ((Model.Estado == EstadoFactura.Confirmada ||
               Model.Estado == EstadoFactura.Generada) &&
-             (Model.TipoComprobante ==
-                  TipoComprobante.CreditoFiscal ||
-              Model.TipoComprobante ==
-                  TipoComprobante.Consumo) &&
+             NexoFELRD.Web.Services.ReglasEmisionVenta.EsTipoHabilitado(Model.TipoComprobante) &&
              !string.IsNullOrWhiteSpace(Model.ENCF))
         {
             <a class="btn btn-outline-warning"

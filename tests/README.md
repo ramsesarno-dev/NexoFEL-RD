@@ -64,6 +64,13 @@ No ejecute `Add-Migration`, `Update-Database`, `EnsureDeleted` ni scripts manual
 - PDF de crédito parcial, débito y factura anulada; contenido histórico y rechazo de configuración incorrecta sin escrituras.
 - Cinco descargas PDF simultáneas sin cambios en facturas, detalles, pagos, productos, clientes, movimientos ni rangos.
 - URL interna del QR tomada de configuración, nunca de la cabecera Host de la solicitud.
+- E45 con comprador identificado, declaración gubernamental obligatoria y rechazo de identificación inválida, cliente inexistente o inactivo.
+- Secuencias E45 independientes, impuestos incluidos/no incluidos, servicios sin salida de bienes, PDF histórico y notas E33/E34 sobre E45.
+- Dashboard en fecha comercial dominicana, reportes y filtro por E45; reenvíos secuenciales/simultáneos y rechazo de declaración alterada.
+- Los tipos pendientes no pueden activarse mediante un POST manipulado. La huella de E31/E32 conserva compatibilidad con la versión anterior.
+- Devoluciones sucesivas sobre dos unidades E31/E32/E45 conservan base, ITBIS y total original, sin crear un centavo por redondeo independiente.
+
+El proceso de integración configura el sondeo de archivos documentado por .NET para evitar agotar instancias inotify al crear numerosos hosts aislados en Linux. Esto afecta únicamente al hospedador de pruebas, no cambia los permisos del sistema ni la configuración de la aplicación normal y no excluye casos.
 
 Las pruebas de concurrencia se envían con clientes/solicitudes independientes y una salida coordinada. Son comprobaciones de integridad bajo los escenarios incluidos, no una demostración de ausencia de todas las condiciones de carrera. La prueba de secuencias permite un rechazo controlado por contención y exige que no deje escrituras parciales; no mide rendimiento ni garantiza que ambas ventas legítimas se confirmen sin reintento.
 

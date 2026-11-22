@@ -83,6 +83,7 @@ public sealed class ServicioComprobantePdf(IOptions<DocumentoPdfOpciones> opcion
         {
             TipoComprobante.NotaCredito => "nota-credito",
             TipoComprobante.NotaDebito => "nota-debito",
+            TipoComprobante.Gubernamental => "gubernamental",
             _ => "factura"
         };
         return $"{prefijo}-{seguro}.pdf";
@@ -105,7 +106,9 @@ public sealed class ServicioComprobantePdf(IOptions<DocumentoPdfOpciones> opcion
             });
             fila.RelativeItem().AlignRight().Column(columna =>
             {
-                columna.Item().AlignRight().Text(Titulo(f.TipoComprobante)).FontSize(19).Bold().FontColor(Azul);
+                columna.Item().AlignRight().Text(Titulo(f.TipoComprobante))
+                    .FontSize(f.TipoComprobante == TipoComprobante.Gubernamental ? 16 : 19)
+                    .Bold().FontColor(Azul);
                 columna.Item().AlignRight().PaddingTop(5)
                     .Text($"E{(int)f.TipoComprobante} | {Estado(f.Estado)}").FontSize(9).SemiBold();
                 columna.Item().AlignRight().PaddingTop(8).Text(f.ENCF ?? "Sin e-NCF asignado")
