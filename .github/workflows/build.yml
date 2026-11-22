@@ -1,22 +1,93 @@
-name: Build
+name: Build y pruebas
 
 on:
   push:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  unitarias:
+    name: Compilar y pruebas unitarias
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - name: Obtener código
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Configurar .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 8.0.x
       - name: Restaurar
-        run: dotnet restore NexoFELRD.sln
+        run: dotnet restore NexoFELRD.sln --disable-parallel --property:BuildInParallel=false
       - name: Compilar
-        run: dotnet build NexoFELRD.sln --configuration Release --no-restore
+        run: dotnet build NexoFELRD.sln --configuration Release --no-restore --maxcpucount:1
+      - name: Ejecutar pruebas unitarias
+        run: dotnet test tests/NexoFELRD.UnitTests --configuration Release --no-build --logger "trx;LogFileName=unitarias.trx" --results-directory TestResults/unitarias
+      - name: Guardar resultados unitarios
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: resultados-unitarios
+          path: TestResults/unitarias
+          if-no-files-found: warn
+
+  integracion:
+    name: Integracion con SQL Server
+    needs: unitarias
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Obtener codigo
+        uses: actions/checkout@v6
+      - name: Configurar .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 8.0.x
+      - name: Iniciar SQL Server temporal
+        shell: bash
+        run: |
+          sql_password="NexoQA!$(openssl rand -hex 20)"
+          echo "::add-mask::$sql_password"
+          docker run --detach --name nexofel-sql-tests \
+            --publish 127.0.0.1:14330:1433 \
+            --env ACCEPT_EULA=Y --env MSSQL_PID=Developer \
+            --env MSSQL_MEMORY_LIMIT_MB=2048 \
+            --env MSSQL_SA_PASSWORD="$sql_password" \
+            mcr.microsoft.com/mssql/server:2022-latest
+          sql_ready=false
+          for attempt in {1..45}; do
+            if docker exec --env SQLCMDPASSWORD="$sql_password" nexofel-sql-tests \
+              /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -C -b -Q "SELECT 1" > /dev/null 2>&1; then
+              sql_ready=true
+              break
+            fi
+            sleep 2
+          done
+          if [ "$sql_ready" != true ]; then
+            docker logs nexofel-sql-tests
+            exit 1
+          fi
+          sql_connection="Server=localhost,14330;Database=master;User Id=sa;Password=$sql_password;Encrypt=False;TrustServerCertificate=True"
+          echo "::add-mask::$sql_connection"
+          printf 'NEXOFEL_TEST_SQL_CONNECTION=%s\n' "$sql_connection" >> "$GITHUB_ENV"
+      - name: Restaurar
+        run: dotnet restore NexoFELRD.sln --disable-parallel --property:BuildInParallel=false
+      - name: Compilar
+        run: dotnet build NexoFELRD.sln --configuration Release --no-restore --maxcpucount:1
+      - name: Ejecutar integracion sin omitir hallazgos
+        run: dotnet test tests/NexoFELRD.IntegrationTests --configuration Release --no-build --logger "trx;LogFileName=integracion.trx" --results-directory TestResults/integracion
+      - name: Guardar resultados de integracion
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: resultados-integracion
+          path: TestResults/integracion
+          if-no-files-found: warn
+      - name: Detener SQL Server temporal
+        if: always()
+        run: docker stop nexofel-sql-tests || true

@@ -1,7 +1,1018 @@
+@model NexoFELRD.Web.Models.ViewModels.ReporteIndexViewModel
+@using NexoFELRD.Web.Models
+@using NexoFELRD.Web.Services
+@using Microsoft.AspNetCore.Mvc.Rendering
+
 @{
     ViewData["Title"] = "Reportes";
+
+    var opcionesTipo =
+        Enum.GetValues<TipoComprobante>()
+            .OrderBy(tipo => (int)tipo)
+            .Select(tipo =>
+                new SelectListItem
+                {
+                    Value =
+                        ((int)tipo).ToString(),
+
+                    Text =
+                        $"{ClasificadorComprobanteFiscal.ObtenerCodigo(tipo)} - " +
+                        ClasificadorComprobanteFiscal.ObtenerNombre(tipo),
+
+                    Selected =
+                        Model.TipoSeleccionado == tipo
+                })
+            .ToList();
 }
-<div class="page-heading">
-    <div><p class="eyebrow">ANÁLISIS</p><h1>Reportes</h1><p class="text-muted">Ventas por fecha y productos más vendidos.</p></div>
+
+<div class="page-heading report-heading">
+    <div>
+        <p class="eyebrow">ANÁLISIS FISCAL</p>
+
+        <h1>Reportes</h1>
+
+        <p class="text-muted mb-0">
+            Ventas, ajustes, impuestos y movimientos de
+            comprobantes electrónicos.
+        </p>
+    </div>
+
+    <div class="report-period">
+        <span>Período consultado</span>
+
+        <strong>
+            @(Model.Desde.ToString("dd/MM/yyyy"))
+            —
+            @(Model.Hasta.ToString("dd/MM/yyyy"))
+        </strong>
+    </div>
 </div>
-<div class="empty-state"><h2>El módulo está creado</h2><p>Los filtros y resultados se implementarán después del núcleo de facturación.</p></div>
+
+<div class="report-filter-card">
+    <form method="get"
+          asp-action="Index"
+          class="row g-3 align-items-end">
+
+        <div asp-validation-summary="ModelOnly"
+             class="text-danger">
+        </div>
+
+        <div class="col-md-6 col-xl-2">
+            <label asp-for="Desde"
+                   class="form-label">
+            </label>
+
+            <input asp-for="Desde"
+                   type="date"
+                   class="form-control" />
+        </div>
+
+        <div class="col-md-6 col-xl-2">
+            <label asp-for="Hasta"
+                   class="form-label">
+            </label>
+
+            <input asp-for="Hasta"
+                   type="date"
+                   class="form-control" />
+        </div>
+
+        <div class="col-md-8 col-xl-4">
+            <label asp-for="TipoSeleccionado"
+                   class="form-label">
+            </label>
+
+            <select asp-for="TipoSeleccionado"
+                    asp-items="opcionesTipo"
+                    class="form-select">
+
+                <option value="">
+                    Todos los comprobantes
+                </option>
+            </select>
+        </div>
+
+        <div class="col-md-4 col-xl-2">
+            <div class="form-check report-checkbox">
+                <input asp-for="IncluirAnuladas"
+                       class="form-check-input" />
+
+                <label asp-for="IncluirAnuladas"
+                       class="form-check-label">
+                </label>
+            </div>
+        </div>
+
+        <div class="col-xl-2">
+            <div class="d-grid gap-2">
+                <button class="btn btn-primary"
+                        type="submit">
+                    Aplicar filtros
+                </button>
+
+                <a class="btn btn-outline-secondary"
+                   asp-action="Index">
+                    Restablecer
+                </a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-xl-4">
+        <div class="report-net-card h-100">
+            <span class="report-net-label">
+                FACTURACIÓN NETA DEL PERÍODO
+            </span>
+
+            <h2>
+                @($"RD$ {Model.VentasNetas:N2}")
+            </h2>
+
+            <p>
+                Importe con ITBIS: facturas más notas de débito,
+                menos notas de crédito. No equivale a cobros ni utilidad.
+            </p>
+
+            <div class="report-net-details">
+                <div>
+                    <span>Documentos del cálculo</span>
+
+                    <strong>
+                        @Model.CantidadDocumentos
+                    </strong>
+                </div>
+
+                <div>
+                    <span>ITBIS neto</span>
+
+                    <strong>
+                        @($"RD$ {Model.ItbisNeto:N2}")
+                    </strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-8">
+        <div class="row g-3 h-100">
+            <div class="col-sm-6">
+                <div class="report-metric-card h-100">
+                    <span>FACTURACIÓN BRUTA</span>
+
+                    <strong>
+                        @($"RD$ {Model.FacturacionBruta:N2}")
+                    </strong>
+
+                    <small>
+                        E31, E32 y ventas especiales
+                    </small>
+                </div>
+            </div>
+
+            <div class="col-sm-6">
+                <div class="report-metric-card
+                            report-metric-card--positive
+                            h-100">
+                    <span>NOTAS DE DÉBITO</span>
+
+                    <strong class="text-success">
+                        @($"+ RD$ {Model.NotasDebito:N2}")
+                    </strong>
+
+                    <small>
+                        Aumentos aplicados mediante E33
+                    </small>
+                </div>
+            </div>
+
+            <div class="col-sm-6">
+                <div class="report-metric-card
+                            report-metric-card--negative
+                            h-100">
+                    <span>NOTAS DE CRÉDITO</span>
+
+                    <strong class="text-danger">
+                        @($"- RD$ {Model.NotasCredito:N2}")
+                    </strong>
+
+                    <small>
+                        Reducciones aplicadas mediante E34
+                    </small>
+                </div>
+            </div>
+
+            <div class="col-sm-6">
+                <div class="report-metric-card h-100">
+                    <span>ITBIS NETO</span>
+
+                    <strong class="@(Model.ItbisNeto < 0
+                                                                                                ? "text-danger"
+                                                                                                : "")">
+                        @($"RD$ {Model.ItbisNeto:N2}")
+                    </strong>
+
+                    <small>
+                        ITBIS facturado y posteriormente ajustado
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="report-summary-strip">
+    <div>
+        <span>Documentos del cálculo</span>
+        <strong>@Model.CantidadDocumentos</strong>
+    </div>
+
+    <div>
+        <span>Anulados</span>
+        <strong>@Model.CantidadAnulados</strong>
+    </div>
+
+    <div>
+        <span>Borradores</span>
+        <strong>@Model.CantidadBorradores</strong>
+    </div>
+
+    <div>
+        <span>Monto no facturable</span>
+        <strong>
+            @($"RD$ {Model.MontoNoFacturableNeto:N2}")
+        </strong>
+    </div>
+
+    <div>
+        <span>Compras y gastos</span>
+        <strong>
+            @($"RD$ {Model.ComprasYGastosNetos:N2}")
+        </strong>
+    </div>
+</div>
+
+@if (Model.CantidadRevertidos > 0)
+{
+    <div class="alert alert-info" role="alert">
+        Hay @Model.CantidadRevertidos factura(s) anulada(s) mediante E34.
+        Se conserva su importe en la fecha original y la nota se descuenta
+        en su propia fecha. También se incluyen en el contador de anulados.
+    </div>
+}
+
+<div class="row g-3 mb-4">
+    <div class="col-xl-7">
+        <section class="report-panel h-100">
+            <div class="report-panel-header">
+                <div>
+                    <p class="eyebrow mb-1">
+                        COMPORTAMIENTO DEL PERÍODO
+                    </p>
+
+                    <h2 class="h5 mb-0">
+                        Resumen diario
+                    </h2>
+                </div>
+            </div>
+
+            @if (!Model.ResumenDiario.Any())
+            {
+                <div class="report-empty">
+                    No existen movimientos fiscales en el
+                    período seleccionado.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table report-table
+                                          align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th class="text-end">
+                                    Facturación
+                                </th>
+                                <th class="text-end">
+                                    E33
+                                </th>
+                                <th class="text-end">
+                                    E34
+                                </th>
+                                <th class="text-end">
+                                    Neto
+                                </th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach (var dia
+                                                    in Model.ResumenDiario)
+                            {
+                                <tr>
+                                    <td class="fw-semibold">
+                                        @(dia.Fecha.ToString(
+                                                                        "dd/MM/yyyy"))
+                            </td>
+
+                                    <td class="text-end">
+                                        @($"RD$ {dia.FacturacionBruta:N2}")
+                                    </td>
+
+                                    <td class="text-end text-success">
+                                        @($"+ RD$ {dia.NotasDebito:N2}")
+                                    </td>
+
+                                    <td class="text-end text-danger">
+                                        @($"- RD$ {dia.NotasCredito:N2}")
+                                    </td>
+
+                                    <td class="text-end fw-bold">
+                                        @($"RD$ {dia.VentasNetas:N2}")
+                                    </td>
+                                </tr>
+                                                }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+    </div>
+
+    <div class="col-xl-5">
+        <section class="report-panel h-100">
+            <div class="report-panel-header">
+                <div>
+                    <p class="eyebrow mb-1">
+                        DISTRIBUCIÓN FISCAL
+                    </p>
+
+                    <h2 class="h5 mb-0">
+                        Comprobantes por tipo
+                    </h2>
+                </div>
+            </div>
+
+            @if (!Model.ResumenPorTipo.Any())
+            {
+                <div class="report-empty">
+                    No existen comprobantes para mostrar.
+                </div>
+            }
+            else
+            {
+                <div class="report-type-list">
+                    @foreach (var tipo
+                                    in Model.ResumenPorTipo)
+                    {
+                        var tipoClase =
+                        tipo.TipoComprobante switch
+                        {
+                            TipoComprobante.CreditoFiscal =>
+                                    "text-bg-primary",
+
+                            TipoComprobante.Consumo =>
+                                    "text-bg-info",
+
+                            TipoComprobante.NotaDebito =>
+                                    "text-bg-warning",
+
+                            TipoComprobante.NotaCredito =>
+                                    "text-bg-danger",
+
+                            _ => "text-bg-secondary"
+                        };
+
+                        var montoClase =
+                        tipo.TipoComprobante switch
+                        {
+                            TipoComprobante.NotaDebito =>
+                                    "text-success",
+
+                            TipoComprobante.NotaCredito =>
+                                    "text-danger",
+
+                            _ => ""
+                        };
+
+                        var montoTexto =
+                        tipo.TipoComprobante switch
+                        {
+                            TipoComprobante.NotaDebito =>
+                                    $"+ RD$ {Math.Abs(tipo.Monto):N2}",
+
+                            TipoComprobante.NotaCredito =>
+                                    $"- RD$ {Math.Abs(tipo.Monto):N2}",
+
+                            _ =>
+                                    $"RD$ {tipo.Monto:N2}"
+                        };
+
+                        <div class="report-type-item">
+                            <div>
+                                <span class="badge @tipoClase">
+                                    @tipo.Codigo
+                                </span>
+
+                                <div>
+                                    <strong>
+                                        @tipo.Nombre
+                                    </strong>
+
+                                    <small>
+                                        @tipo.Categoria ·
+                                        @tipo.Cantidad documento(s)
+                                    </small>
+                                </div>
+                            </div>
+
+                            <strong class="@montoClase">
+                                @montoTexto
+                            </strong>
+                        </div>
+                    }
+                </div>
+            }
+        </section>
+    </div>
+</div>
+
+<section class="report-panel mb-4">
+    <div class="report-panel-header">
+        <div>
+            <p class="eyebrow mb-1">
+                MOVIMIENTO DE PRODUCTOS
+            </p>
+
+            <h2 class="h5 mb-0">
+                Cantidades facturadas y reintegradas
+            </h2>
+        </div>
+    </div>
+
+    @if (!Model.Productos.Any())
+    {
+        <div class="report-empty">
+            No existen productos facturados en el período
+            seleccionado.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table report-table
+                                  align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th class="text-end">
+                            Cantidad facturada
+                        </th>
+                        <th class="text-end">
+                            Cantidad reintegrada
+                        </th>
+                        <th class="text-end">
+                            Cantidad neta
+                        </th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach (var producto in Model.Productos)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">
+                                    @producto.Codigo
+                                </div>
+
+                                <small class="text-muted">
+                                    @producto.Nombre
+                                </small>
+                            </td>
+
+                            <td class="text-end">
+                                @producto.CantidadFacturada.ToString("N2")
+                            </td>
+
+                            <td class="text-end text-danger">
+                                @producto.CantidadDevuelta.ToString("N2")
+                            </td>
+
+                            <td class="text-end fw-bold">
+                                @producto.CantidadNeta.ToString("N2")
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+<section class="report-panel">
+    <div class="report-panel-header">
+        <div>
+            <p class="eyebrow mb-1">
+                TRAZABILIDAD
+            </p>
+
+            <h2 class="h5 mb-0">
+                Documentos del período
+            </h2>
+        </div>
+
+        <span class="badge text-bg-secondary">
+            @Model.TotalResultados resultado(s)
+        </span>
+    </div>
+
+    @if (Model.ResultadosLimitados)
+    {
+        <div class="alert alert-warning
+                            rounded-0 border-start-0 border-end-0">
+            Se muestran los primeros 200 documentos.
+            Utiliza los filtros para reducir los resultados.
+        </div>
+    }
+
+    @if (!Model.Documentos.Any())
+    {
+        <div class="report-empty">
+            No se encontraron documentos con los filtros
+            seleccionados.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table report-table
+                                  align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Documento</th>
+                        <th>Fecha</th>
+                        <th>Comprobante</th>
+                        <th>Comprador</th>
+                        <th class="text-end">Subtotal</th>
+                        <th class="text-end">ITBIS</th>
+                        <th class="text-end">Total</th>
+                        <th>Estado</th>
+                        <th class="text-end">Acción</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach (var documento in Model.Documentos)
+                    {
+                        var tipoCodigo =
+                        ClasificadorComprobanteFiscal
+                        .ObtenerCodigo(
+                        documento.TipoComprobante);
+
+                        var tipoNombre =
+                        ClasificadorComprobanteFiscal
+                        .ObtenerNombre(
+                        documento.TipoComprobante);
+
+                        var tipoClase =
+                        documento.TipoComprobante switch
+                        {
+                            TipoComprobante.CreditoFiscal =>
+                                    "text-bg-primary",
+
+                            TipoComprobante.Consumo =>
+                                    "text-bg-info",
+
+                            TipoComprobante.NotaDebito =>
+                                    "text-bg-warning",
+
+                            TipoComprobante.NotaCredito =>
+                                    "text-bg-danger",
+
+                            _ => "text-bg-secondary"
+                        };
+
+                        var estadoTexto =
+                        documento.Estado switch
+                        {
+                            EstadoFactura.Borrador =>
+                                    "Borrador",
+
+                            EstadoFactura.Confirmada =>
+                                    "Confirmada",
+
+                            EstadoFactura.Generada =>
+                                    "Generada",
+
+                            EstadoFactura.Anulada =>
+                                    "Anulada",
+
+                            _ => "Desconocido"
+                        };
+
+                        var estadoClase =
+                        documento.Estado switch
+                        {
+                            EstadoFactura.Borrador =>
+                                    "text-bg-secondary",
+
+                            EstadoFactura.Confirmada =>
+                                    "text-bg-success",
+
+                            EstadoFactura.Generada =>
+                                    "text-bg-primary",
+
+                            EstadoFactura.Anulada =>
+                                    "text-bg-danger",
+
+                            _ => "text-bg-secondary"
+                        };
+
+                        if (documento.RevertidaPorNotaCredito)
+                        {
+                            estadoTexto = "Revertida por E34";
+                            estadoClase = "text-bg-secondary";
+                        }
+
+                        var montoClase =
+                        documento.TipoComprobante switch
+                        {
+                            TipoComprobante.NotaDebito =>
+                                    "text-success",
+
+                            TipoComprobante.NotaCredito =>
+                                    "text-danger",
+
+                            _ => ""
+                        };
+
+                        var montoTexto =
+                        documento.TipoComprobante switch
+                        {
+                            TipoComprobante.NotaDebito =>
+                                    $"+ RD$ {documento.Total:N2}",
+
+                            TipoComprobante.NotaCredito =>
+                                    $"- RD$ {documento.Total:N2}",
+
+                            _ =>
+                                    $"RD$ {documento.Total:N2}"
+                        };
+
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">
+                                    @documento.NumeroInterno
+                                </div>
+
+                                <small class="text-muted">
+                                    @(string.IsNullOrWhiteSpace(
+                                                                documento.ENCF)
+                                                                ? "e-NCF pendiente"
+                                                                : documento.ENCF)
+                                                                             </small>
+                                                                         </td>
+
+                            <td class="text-nowrap">
+                                @(documento.FechaEmision
+                                                        .ToString("dd/MM/yyyy"))
+                    </td>
+
+                            <td>
+                                <span class="badge @tipoClase">
+                                    @tipoCodigo - @tipoNombre
+                                </span>
+
+                        @if (documento.FacturaAfectadaId
+                                                .HasValue)
+                                {
+                                    <small class="d-block
+                                                                          text-muted mt-1">
+                                        Afecta:
+                                        @(documento.ENCFOriginal ??
+                                                                    "comprobante original")
+                        </small>
+                                                }
+                            </td>
+
+                            <td>
+                                @documento.Comprador
+                            </td>
+
+                            <td class="text-end text-nowrap">
+                                @($"RD$ {documento.Subtotal:N2}")
+                            </td>
+
+                            <td class="text-end text-nowrap">
+                                @($"RD$ {documento.Itbis:N2}")
+                            </td>
+
+                            <td class="text-end fw-bold
+                                                       text-nowrap @montoClase">
+                                @montoTexto
+                            </td>
+
+                            <td>
+                                <span class="badge @estadoClase">
+                                    @estadoTexto
+                                </span>
+                            </td>
+
+                            <td class="text-end">
+                                <a class="btn btn-sm
+                                                          btn-outline-primary"
+                                   asp-controller="Facturas"
+                                   asp-action="Detalle"
+                                   asp-route-id="@documento.Id">
+                                    Ver
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+<style>
+    .report-heading {
+        gap: 1.5rem;
+    }
+
+    .report-period {
+        min-width: 230px;
+        padding: .9rem 1.1rem;
+        background: #ffffff;
+        border: 1px solid #d9e3eb;
+        border-radius: .8rem;
+        text-align: right;
+    }
+
+        .report-period span,
+        .report-period strong {
+            display: block;
+        }
+
+        .report-period span {
+            color: #66798a;
+            font-size: .78rem;
+        }
+
+        .report-period strong {
+            margin-top: .15rem;
+            color: #082f52;
+        }
+
+    .report-filter-card {
+        margin-bottom: 1rem;
+        padding: 1.25rem;
+        background: #ffffff;
+        border: 1px solid #d9e3eb;
+        border-radius: 1rem;
+        box-shadow: 0 10px 26px rgba(31, 57, 78, .06);
+    }
+
+    .report-checkbox {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        gap: .45rem;
+        padding-left: 1.8rem;
+    }
+
+    .report-net-card {
+        display: flex;
+        min-height: 290px;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 1.7rem;
+        color: #ffffff;
+        background: linear-gradient( 135deg, #073b64 0%, #176b9b 100% );
+        border-radius: 1rem;
+        box-shadow: 0 14px 32px rgba(16, 54, 82, .16);
+    }
+
+    .report-net-label {
+        font-size: .75rem;
+        font-weight: 800;
+        letter-spacing: .12em;
+        opacity: .82;
+    }
+
+    .report-net-card h2 {
+        margin: .7rem 0 .4rem;
+        font-size: clamp(2rem, 4vw, 2.7rem);
+        font-weight: 750;
+    }
+
+    .report-net-card p {
+        color: rgba(255, 255, 255, .8);
+    }
+
+    .report-net-details {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, .14);
+        border-radius: .8rem;
+        background: rgba(255, 255, 255, .08);
+    }
+
+        .report-net-details div {
+            padding: .9rem;
+        }
+
+            .report-net-details div + div {
+                border-left: 1px solid rgba(255, 255, 255, .14);
+            }
+
+        .report-net-details span,
+        .report-net-details strong {
+            display: block;
+        }
+
+        .report-net-details span {
+            color: rgba(255, 255, 255, .72);
+            font-size: .75rem;
+        }
+
+        .report-net-details strong {
+            margin-top: .2rem;
+        }
+
+    .report-metric-card {
+        display: flex;
+        min-height: 138px;
+        flex-direction: column;
+        padding: 1.2rem;
+        background: #ffffff;
+        border: 1px solid #d9e3eb;
+        border-radius: .9rem;
+        box-shadow: 0 10px 26px rgba(31, 57, 78, .06);
+    }
+
+    .report-metric-card--positive {
+        border-top: 3px solid var(--bs-success);
+    }
+
+    .report-metric-card--negative {
+        border-top: 3px solid var(--bs-danger);
+    }
+
+    .report-metric-card > span {
+        color: #607486;
+        font-size: .72rem;
+        font-weight: 800;
+        letter-spacing: .08em;
+    }
+
+    .report-metric-card strong {
+        margin: .4rem 0 .15rem;
+        color: #082f52;
+        font-size: 1.6rem;
+    }
+
+    .report-metric-card small {
+        margin-top: auto;
+        color: #6b7d8c;
+    }
+
+    .report-summary-strip {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+        background: #ffffff;
+        border: 1px solid #d9e3eb;
+        border-radius: .9rem;
+        box-shadow: 0 10px 24px rgba(31, 57, 78, .05);
+    }
+
+        .report-summary-strip > div {
+            padding: 1rem 1.1rem;
+        }
+
+            .report-summary-strip > div + div {
+                border-left: 1px solid #e2e8ee;
+            }
+
+        .report-summary-strip span,
+        .report-summary-strip strong {
+            display: block;
+        }
+
+        .report-summary-strip span {
+            color: #687b8b;
+            font-size: .77rem;
+        }
+
+        .report-summary-strip strong {
+            margin-top: .2rem;
+            color: #123b5a;
+        }
+
+    .report-panel {
+        overflow: hidden;
+        background: #ffffff;
+        border: 1px solid #d9e3eb;
+        border-radius: 1rem;
+        box-shadow: 0 12px 28px rgba(31, 57, 78, .07);
+    }
+
+    .report-panel-header {
+        display: flex;
+        min-height: 78px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1.2rem 1.4rem;
+        border-bottom: 1px solid #e2e8ee;
+    }
+
+    .report-table thead th {
+        padding: .85rem 1rem;
+        color: #5a6c7c;
+        background: #f7f9fb;
+        border-bottom-width: 1px;
+        font-size: .74rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .report-table tbody td {
+        padding: .9rem 1rem;
+    }
+
+    .report-empty {
+        display: flex;
+        min-height: 180px;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        color: #6a7d8c;
+        text-align: center;
+    }
+
+    .report-type-list {
+        padding: .25rem 1.4rem;
+    }
+
+    .report-type-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1rem 0;
+        border-bottom: 1px solid #e4eaf0;
+    }
+
+        .report-type-item:last-child {
+            border-bottom: 0;
+        }
+
+        .report-type-item > div {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+        }
+
+        .report-type-item strong,
+        .report-type-item small {
+            display: block;
+        }
+
+        .report-type-item small {
+            margin-top: .1rem;
+            color: #6d7e8d;
+        }
+
+    @@media (max-width: 1199.98px) {
+        .report-summary-strip {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+            .report-summary-strip > div + div {
+                border-left: 0;
+                border-top: 1px solid #e2e8ee;
+            }
+    }
+
+    @@media (max-width: 767.98px) {
+        .report-period {
+            width: 100%;
+            text-align: left;
+        }
+
+        .report-summary-strip {
+            grid-template-columns: 1fr;
+        }
+
+        .report-net-card {
+            min-height: auto;
+        }
+    }
+</style>

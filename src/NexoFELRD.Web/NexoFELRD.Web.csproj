@@ -7,6 +7,8 @@
     <UserSecretsId>0352a2b5-a169-4849-8348-fc8b6bf6bfac</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="QuestPDF" Version="2026.9.2" />
+    <PackageReference Include="QRCoder" Version="1.9.0" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.31" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="8.0.31" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.31" />

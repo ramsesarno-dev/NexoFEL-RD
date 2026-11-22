@@ -6,6 +6,12 @@ public class Factura
 {
     public int Id { get; set; }
 
+    // Nulos únicamente en documentos anteriores a esta protección.
+    public Guid? ClaveOperacion { get; set; }
+
+    [StringLength(64)]
+    public string? HuellaSolicitud { get; set; }
+
     [Required]
     [StringLength(20)]
     public string NumeroInterno { get; set; } = string.Empty;

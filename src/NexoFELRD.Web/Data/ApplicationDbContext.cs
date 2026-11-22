@@ -239,6 +239,14 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
 
             entity.HasIndex(x => x.NCFModificado);
 
+            entity.Property(x => x.HuellaSolicitud)
+                .HasMaxLength(64)
+                .IsUnicode(false);
+
+            entity.HasIndex(x => x.ClaveOperacion)
+                .IsUnique()
+                .HasFilter("[ClaveOperacion] IS NOT NULL");
+
             entity.HasOne(x => x.Cliente)
                 .WithMany(x => x.Facturas)
                 .HasForeignKey(x => x.ClienteId)

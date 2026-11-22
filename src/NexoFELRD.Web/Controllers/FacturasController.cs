@@ -5,8 +5,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using NexoFELRD.Web.Data;
+using NexoFELRD.Web.Filters;
 using NexoFELRD.Web.Models;
 using NexoFELRD.Web.Models.ViewModels;
+using NexoFELRD.Web.Services;
+using NexoFELRD.Web.Services.Documentos;
 
 namespace NexoFELRD.Web.Controllers;
 
@@ -18,15 +21,18 @@ public class FacturasController : Controller
     private readonly ApplicationDbContext _context;
     private readonly UserManager<IdentityUser> _userManager;
     private readonly ILogger<FacturasController> _logger;
+    private readonly ProteccionEmision _proteccionEmision;
 
     public FacturasController(
         ApplicationDbContext context,
         UserManager<IdentityUser> userManager,
-        ILogger<FacturasController> logger)
+        ILogger<FacturasController> logger,
+        ProteccionEmision proteccionEmision)
     {
         _context = context;
         _userManager = userManager;
         _logger = logger;
+        _proteccionEmision = proteccionEmision;
     }
 
     [HttpGet]
@@ -83,10 +89,46 @@ public class FacturasController : Controller
     }
 
     [HttpGet]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> DescargarPdf(
+        int id,
+        [FromServices] ServicioComprobantePdf documentos,
+        CancellationToken cancellationToken)
+    {
+        // Conserva la autorización del controlador y utiliza solo datos históricos.
+        // No carga productos/clientes actuales ni entra en los flujos de emisión.
+        var factura = await _context.Facturas
+            .AsNoTracking()
+            .Include(x => x.Detalles)
+            .Include(x => x.FormasPago)
+            .Include(x => x.FacturaAfectada)
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+
+        if (factura is null)
+            return NotFound();
+
+        cancellationToken.ThrowIfCancellationRequested();
+        try
+        {
+            var contenido = documentos.Generar(factura);
+            Response.Headers["X-Content-Type-Options"] = "nosniff";
+            return File(contenido, "application/pdf", ServicioComprobantePdf.NombreArchivo(factura));
+        }
+        catch (ConfiguracionDocumentoPdfException ex)
+        {
+            _logger.LogWarning("No se generó el PDF por una configuración de documentos inválida.");
+            return Problem(statusCode: StatusCodes.Status503ServiceUnavailable,
+                title: "No se pudo generar el PDF", detail: ex.Message);
+        }
+    }
+
+    [HttpGet]
     public async Task<IActionResult> CrearNotaCredito(int id)
     {
         var modelo = new NotaCreditoCrearViewModel
         {
+            TokenOperacion = _proteccionEmision.CrearToken(
+                _userManager.GetUserId(User)!, ProteccionEmision.Credito, id),
             FacturaAfectadaId = id,
             FechaEmision = DateTime.Today,
             CodigoModificacion =
@@ -109,6 +151,7 @@ public class FacturasController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [ServiceFilter(typeof(EmisionIdempotenteFilter))]
     public async Task<IActionResult> CrearNotaCredito(
     NotaCreditoCrearViewModel modelo)
     {
@@ -1047,6 +1090,7 @@ public class FacturasController : Controller
                     EstadoFactura.Anulada;
             }
 
+            _proteccionEmision.Vincular(notaCredito);
             _context.Facturas.Add(
                 notaCredito);
 
@@ -1094,6 +1138,8 @@ public class FacturasController : Controller
     {
         var modelo = new NotaDebitoCrearViewModel
         {
+            TokenOperacion = _proteccionEmision.CrearToken(
+                _userManager.GetUserId(User)!, ProteccionEmision.Debito, id),
             FacturaAfectadaId = id,
             FechaEmision = DateTime.Today
         };
@@ -1112,6 +1158,7 @@ public class FacturasController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [ServiceFilter(typeof(EmisionIdempotenteFilter))]
     public async Task<IActionResult> CrearNotaDebito(
     NotaDebitoCrearViewModel modelo)
     {
@@ -1711,6 +1758,7 @@ public class FacturasController : Controller
              * Una nota de débito aumenta el valor fiscal, pero no
              * representa una salida adicional de mercancía.
              */
+            _proteccionEmision.Vincular(notaDebito);
             _context.Facturas.Add(
                 notaDebito);
 
@@ -1756,7 +1804,11 @@ public class FacturasController : Controller
     [HttpGet]
     public async Task<IActionResult> Crear()
     {
-        var modelo = new FacturaCrearViewModel();
+        var modelo = new FacturaCrearViewModel
+        {
+            TokenOperacion = _proteccionEmision.CrearToken(
+                _userManager.GetUserId(User)!, ProteccionEmision.Venta)
+        };
 
         await CargarCatalogosAsync(modelo);
 
@@ -1765,6 +1817,7 @@ public class FacturasController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [ServiceFilter(typeof(EmisionIdempotenteFilter))]
     public async Task<IActionResult> Crear(
         FacturaCrearViewModel modelo)
     {
@@ -1962,22 +2015,32 @@ public class FacturasController : Controller
                     producto.Precio * solicitud.Cantidad);
 
                 var baseImponible = montoItem;
+                var itbisLinea = 0m;
 
-                if (modelo.IndicadorMontoGravado == 1 &&
-                    tasaEsperada > 0)
+                var aplicaItbis =
+                    producto.IndicadorFacturacion is 1 or 2;
+
+                if (aplicaItbis)
                 {
-                    baseImponible = Redondear(
-                        montoItem /
-                        (1m + tasaEsperada / 100m));
-                }
+                    if (modelo.IndicadorMontoGravado == 1)
+                    {
+                        baseImponible = Redondear(
+                            montoItem /
+                            (1m + tasaEsperada / 100m));
 
-                var itbisLinea =
-                    producto.IndicadorFacturacion is 1 or 2
-                        ? Redondear(
-                            baseImponible *
-                            tasaEsperada /
-                            100m)
-                        : 0m;
+                        // El precio ya incluye ITBIS:
+                        // la base y el impuesto deben conservar ese importe.
+                        itbisLinea = Redondear(
+                            montoItem - baseImponible);
+                    }
+                    else
+                    {
+                        // El precio no incluye ITBIS:
+                        // se calcula el impuesto sobre la base.
+                        itbisLinea = Redondear(
+                            baseImponible * tasaEsperada / 100m);
+                    }
+                }
 
                 switch (producto.IndicadorFacturacion)
                 {
@@ -2199,6 +2262,7 @@ public class FacturasController : Controller
                     });
             }
 
+            _proteccionEmision.Vincular(factura);
             _context.Facturas.Add(factura);
 
             await _context.SaveChangesAsync();

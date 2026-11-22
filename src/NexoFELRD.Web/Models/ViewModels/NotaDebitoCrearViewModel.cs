@@ -5,6 +5,10 @@ namespace NexoFELRD.Web.Models.ViewModels;
 public class NotaDebitoCrearViewModel :
     IValidatableObject
 {
+    [Required]
+    [StringLength(2048)]
+    public string TokenOperacion { get; set; } = string.Empty;
+
     [Range(
         1,
         int.MaxValue,
